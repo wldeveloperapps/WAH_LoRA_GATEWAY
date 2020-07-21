@@ -1,0 +1,267 @@
+from network import LoRa
+import ubinascii
+import binascii
+import struct
+import socket
+import machine
+import utime
+import pycom
+import tools
+import _thread
+from lib.loRaReportsTools import LoRaWANSentListCleanDevices
+from lib.whitelistTools import WhiteListNewDevice, WhiteListDeleteDevices
+from lib.buzzerTools import BeepBuzzer, BuzzerListCleanDevices
+from lib.buzzertools import BeepBuzzer
+from lib.rtcmgt import initRTC, forceRTC
+import globalVars
+
+LORA_CHANNEL = 1
+LORA_NODE_DR = 4
+# REGION = 'AS923'
+REGION = 'EU868'
+if REGION == 'EU868':
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=False, tx_power=20, tx_retries=3)
+elif REGION == 'AS923':
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=False, tx_power=20, tx_retries=3)
+
+lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
+
+strError = []
+lora_flag = 0
+
+def prepare_channels_as923(lora, channel, data_rate):
+    AS923_FREQUENCIES = [
+        { "chan": 1, "fq": "923200000" },
+        { "chan": 2, "fq": "923400000" },
+        { "chan": 3, "fq": "923600000" },
+        { "chan": 4, "fq": "923800000" },
+        { "chan": 5, "fq": "924000000" },
+        { "chan": 6, "fq": "924200000" },
+        { "chan": 7, "fq": "924400000" },
+        { "chan": 8, "fq": "924600000" },
+    ]
+    
+
+    if not channel in range(0, 9):
+        raise RuntimeError("channels should be in 1-8 for AS923")
+
+    if channel == 0:
+        import uos
+        channel = (struct.unpack('B',uos.urandom(1))[0] % 7) + 1
+
+    for i in range(0, 8):
+        lora.remove_channel(i)
+
+    upstream = (item for item in AS923_FREQUENCIES if item["chan"] == channel).__next__()
+
+    # set default channels frequency
+    lora.add_channel(int(upstream.get('chan')), frequency=int(upstream.get('fq')), dr_min=0, dr_max=data_rate)
+    return lora
+
+def prepare_channels_eu868(lora, channel, data_rate):
+    EU868_FREQUENCIES = [
+        { "chan": 1, "fq": "865100000" },
+        { "chan": 2, "fq": "865300000" },
+        { "chan": 3, "fq": "865500000" },
+        { "chan": 4, "fq": "865700000" },
+        { "chan": 5, "fq": "865900000" },
+        { "chan": 6, "fq": "866100000" },
+        { "chan": 7, "fq": "866300000" },
+        { "chan": 8, "fq": "866500000" },
+        { "chan": 9, "fq": "867100000" },
+        { "chan": 10, "fq": "867300000" },
+        { "chan": 11, "fq": "867500000" },
+        { "chan": 12, "fq": "867700000" },
+        { "chan": 13, "fq": "867900000" },
+        { "chan": 14, "fq": "868100000" },
+        { "chan": 15, "fq": "868300000" },
+        { "chan": 16, "fq": "868500000" },
+    ]
+    
+
+    if not channel in range(0, 17):
+        raise RuntimeError("channels should be in 1-8 for AS923")
+
+    if channel == 0:
+        import uos
+        channel = (struct.unpack('B',uos.urandom(1))[0] % 7) + 1
+
+    for i in range(0, 16):
+        lora.remove_channel(i)
+
+    upstream = (item for item in EU868_FREQUENCIES if item["chan"] == channel).__next__()
+
+    # set default channels frequency
+    lora.add_channel(int(upstream.get('chan')), frequency=int(upstream.get('fq')), dr_min=0, dr_max=data_rate)
+    return lora
+
+def joinLoRaWANModule(lora):
+    global lora_flag
+    try:
+        # if reset_cause == machine.DEEPSLEEP_RESET and lora.has_joined():
+        if lora.has_joined():
+            print('Step 0.1 - Skipping LoRaWAN join, previously joined')
+        else:
+            ddd = '0000' + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8'))
+            print("DEV EUI: " + str(ddd))
+            dev_eui = binascii.unhexlify(ddd)
+            app_key = binascii.unhexlify('a926e5bb85271f2d') # not used leave empty loraserver.io
+            nwk_key = binascii.unhexlify('a926e5bb85271f2da0440f2f4200afe3')
+            lora.join(activation=LoRa.OTAA, auth=(dev_eui, app_key, nwk_key), timeout=0, dr=2) # AS923 always joins at DR2
+            
+            if REGION == 'AS923':
+                prepare_channels_as923(lora, LORA_CHANNEL,  LORA_NODE_DR)
+            elif REGION == 'EU868':
+                prepare_channels_eu868(lora, LORA_CHANNEL,  LORA_NODE_DR)
+
+            print('Step 0.1 - Over the air network activation ... ', end='')
+            while not lora.has_joined():
+                utime.sleep(2.5)
+                print('.', end='')
+            print('Joined!!')
+            lora.nvram_save()
+    except Exception as e:
+        print("Step 0.1 - Error initializaing LoRaWAN module: " + str(e))
+        strError.append('3')
+
+def initLoRaWANSocket(lora_socket, lora):
+    try:
+        print("Step 0.2 - LoRa socket setup")
+        lora_socket.setsockopt(socket.SOL_LORA, socket.SO_DR, LORA_NODE_DR)
+        lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 1)
+        lora.callback(trigger=( LoRa.RX_PACKET_EVENT |
+                                LoRa.TX_PACKET_EVENT |
+                                LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
+
+        lora_socket.setblocking(False)
+        lora_socket.bind(1)
+    except Exception as e:
+        print("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(e))
+        strError.append('2')
+
+def lora_cb(lora):
+    try:
+        events = lora.events()
+        if events & LoRa.RX_PACKET_EVENT:
+            if lora_socket is not None:
+                print("##### LoRa Rx Event Callback")
+                lora_socket.settimeout(5)
+                port = 0
+                try:
+                    frame, port = lora_socket.recvfrom(256) # longuest frame is +-220
+                except Exception as e2:
+                    print("Error downlink: " + str(e2))
+                payload = str(ubinascii.hexlify(frame).decode('utf-8'))
+                print("##### Receiving message" + payload + " Port: " + str(port))
+                if len(payload) > 1: 
+                    if payload[0:2] == '0a': # Add new devices to the whitelist
+                        print("##### Message received of new device in whitelist, lenght: " + str(len(payload)/2));
+                        WhiteListNewDevice(payload[2:])
+                        machine.reset()
+                    elif payload[0:2] == 'fa': # Delete entire whitelist file
+                        WhiteListDeleteDevices()
+                        machine.reset()
+                    elif payload[0:2] == 'fb': # Delete entire buzzer file
+                        BuzzerListCleanDevices()
+                        machine.reset()
+                    elif payload[0:2] == 'fc': # Delete entire sent file
+                        LoRaWANSentListCleanDevices()
+                        machine.reset()
+                    elif payload[0:2] == 'fd': # Delete entire NVS Memory
+                        pycom.nvs_erase_all()
+                        machine.reset()
+                    elif payload[0:2] == 'cc': # Change configuration parameters
+                        tools.UpdateConfigurationParameters(payload[2:])
+                        machine.reset()
+                    elif payload[0:2] == 'd0': # Syncronize RTC
+                        forceRTC(int(payload[2:10],16))
+                        pycom.nvs_set('rtc', int(payload[2:10],16))
+                        utime.sleep(2)
+                        dt = pycom.nvs_get('rtc')
+                        print("New RTC: " + str(dt))
+                        utime.sleep(1)
+                        print("Step SYNCRO - Syncronizing RTC from Server to " + str(int(payload[2:10],16)))
+                    elif payload[0:2] == 'dc': # Change Debug Mode
+                        dummy = int(payload[2:4],16)
+                        print("Change debug mode: " + str(dummy))
+                        if dummy == 0:
+                            globalVars.debug_cc = ''
+                        elif dummy == 1:
+                            globalVars.debug_cc = 'v'
+                        elif dummy == 2:
+                            globalVars.debug_cc = 'vv'
+                        elif dummy == 3:
+                            globalVars.debug_cc = 'vvv'
+                        print("Mode changed to: " + str(globalVars.debug_cc))
+                    elif payload[0:2] == 'b0': # Force Alarm
+                        BeepBuzzer(int(payload[2:4],16))
+                    else:
+                        print("##### Message received other code: " + str(payload[0:2]) + " Lenght: " + str(len(payload)/2))
+                    
+                    BeepBuzzer(2)
+        if events & LoRa.TX_PACKET_EVENT:
+            txt = "tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx)
+            print(txt)
+        if events & LoRa.TX_FAILED_EVENT:
+            print("#### Error TxEvent ####")
+    except Exception as e1:
+        print("Step DL - Error managing downlink: " + str(e1)) 
+        strError.append('16')
+
+def join_lora():
+    global lora
+    global lora_socket
+    global LORA_CHANNEL
+    global LORA_NODE_DR
+    try:
+        joinLoRaWANModule(lora)
+        initLoRaWANSocket(lora_socket, lora)
+        utime.sleep(2)
+    except Exception as ee:
+        print("Error joining LoRa Network: " + str(ee))
+
+def sendLoRaWANMessage(payload):
+    global lora_flag
+    global lora_socket
+    try:
+        # print("In Sending message starting method: " + str(globalVars.stop_sleep_flag))
+        if lora.has_joined():
+            # _thread.start_new_thread(sendPayload,(payload,))
+            sendPayload(payload)
+            # print("Sending LoRaWAN message: " + str(payload))
+            # lora_socket.setblocking(True)
+            # lora_socket.send(bytes(payload))
+            # lora_socket.setblocking(False)
+            # globalVars.stop_sleep_flag = False
+            # print("In Sending message final method: " + str(globalVars.stop_sleep_flag))
+            
+        else:
+            print("Impossible to send because device is not joined")
+        # else:
+        #     join_lora()
+        #     utime.sleep(2)
+        #     if lora.has_joined():
+        #         print("Sending LoRaWAN message after re-joining: " + str(payload))
+        #         lora_socket.setblocking(True)
+        #         lora_socket.send(bytes(payload))
+        #         lora_socket.setblocking(False)
+        #         utime.sleep(2)
+        #         # return True
+        #     # return False
+    except Exception as eee:
+        print("Error sending LoRaWAN message: " + str(eee))
+
+def sendPayload(payload):
+    global lora_socket
+    try:
+        # globalVars.stop_sleep_flag = True
+        print("Sending LoRaWAN payload init: " + str(payload))
+        lora_socket.setblocking(True)
+        _thread.start_new_thread(lora_socket.send,(bytes(payload),))
+        lora_socket.setblocking(False)
+        # globalVars.stop_sleep_flag = False
+        # print("Sending LoRaWAN payload end: " + str(globalVars.stop_sleep_flag))
+        utime.sleep(2)
+    except Exception as eee:
+        print("Error sending LoRaWAN payload: " + str(eee))
+
