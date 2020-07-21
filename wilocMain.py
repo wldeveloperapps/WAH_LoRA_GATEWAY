@@ -3,6 +3,7 @@ from lib.loRaReportsTools import LoRaWANListSentDevices, LoRaWANSentListUpdateDe
 from lib.buzzerTools import BeepBuzzer
 from machine import SD, WDT
 from lib.rtcmgt import initRTC, autoRTCInitialize
+from errorissuer import checkError
 import ubinascii
 import utime
 import machine
@@ -53,7 +54,7 @@ def rssiFilterDevices(RSSI_NEAR_THRESHOLD, macs, frames):
                 tools.debug("Step 2 - Not sending device " + str(ubinascii.hexlify(scanDev)) + " Distance: Far " + " RSSI: " + str(ret[0]) + " Samples: " + str(ret[1]) + " DT: " + str(int(utime.time())), 'vv')
         return rssi_filter_devices
     except Exception as e1:
-        tools.debug("Step 2 - Error filtering RSSI: " + str(e1),'v') 
+        checkError("Step 2 - Error filtering RSSI: " + str(e1)) 
         return []
 
 def calculateRssiAvg(device, frames):
@@ -72,7 +73,7 @@ def calculateRssiAvg(device, frames):
         #print("Device: " + str(device) + "RSSI Average: " + str(rssi_average) + " Samples: " + str(samples))
         return rssi_average, samples
     except Exception as e:
-        tools.debug("Error calculating RSSI Avg",'v')
+        checkError("Error calculating RSSI Avg")
         return []
 
 def getBatteryLevel(py):
@@ -82,7 +83,7 @@ def getBatteryLevel(py):
         tools.debug("Battery Level: " + str(acc_bat),'vv')
         return acc_bat
     except Exception as e:
-        tools.debug("Error getting battery level, " + str(e),'v')
+        checkError("Error getting battery level, " + str(e))
         return 0
 
 def loadSDCardData():
@@ -108,7 +109,7 @@ def loadSDCardData():
             strError.append(sent[0])
 
     except Exception as e:
-        print("Step 0 - Error load SD Card information: " + str(e))
+        checkError("Step 0 - Error load SD Card information: " + str(e))
         strError.append('10')
 
 def checkWhiteList(dev):
@@ -116,13 +117,13 @@ def checkWhiteList(dev):
     try:
         if dev not in devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vv')
-            if str(globalVars.debug_cc).count('v') == 0:
-                BeepBuzzer(0.02)
+            if str(globalVars.debug_cc).count('v') <= 1:
+                BeepBuzzer(0.1)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vv')
 
     except Exception as e:
-        tools.debug("Error getting battery level, " + str(e),'v')
+        checkError("Error getting battery level, " + str(e))
 
 def checkTimeToSend(devs, MAX_REFRESH_TIME):
     global device_sent
@@ -141,7 +142,7 @@ def checkTimeToSend(devs, MAX_REFRESH_TIME):
         
         return ret_devices
     except Exception as e:
-        tools.debug("Error checking time to send data: " + str(e),'vv')
+        checkError("Error checking time to send data: " + str(e))
         return []
 
 def createPackageToSend(devs):
@@ -164,7 +165,7 @@ def createPackageToSend(devs):
 
         return strToSend
     except Exception as e1:
-        tools.debug("Step 5 - Error sending LoRaWAN: " + str(e1),'v') 
+        checkError("Step 5 - Error sending LoRaWAN: " + str(e1)) 
         strError.append('1')
         return []
 
@@ -173,13 +174,13 @@ def feedWatchdog():
     try:
         wdt.feed()
     except Exception as e:
-        tools.debug("Error feeding watchdog",'v')
+        checkError("Error feeding watchdog")
 
 def ForceBuzzerSound(duration):
     try:
         BeepBuzzer(duration)
     except Exception as e:
-        tools.debug("Error forcing buzzer",'v')
+        checkError("Error forcing buzzer")
 
 def checkTimeForStatistics(STATISTICS_REPORT_INTERVAL):
     try:
@@ -197,7 +198,7 @@ def checkTimeForStatistics(STATISTICS_REPORT_INTERVAL):
             tools.debug("Step 6 - No statistics reports yet, remaining: " + str(((int(last_report) + int(STATISTICS_REPORT_INTERVAL)) - ts)),'v')
             return False
     except Exception as e:
-        tools.debug("Error checking time for statistics: " + str(e),'v')
+        checkError("Error checking time for statistics: " + str(e))
         return False
 
 def createStatisticsReport():
@@ -249,7 +250,7 @@ def createStatisticsReport():
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(acc_bat),'v')
         return strToSendStatistics
     except Exception as e:
-        tools.debug("Error creating statistics report: " + str(e),'v') 
+        checkError("Error creating statistics report: " + str(e)) 
         strError.append('19')
         return []
 
@@ -273,5 +274,5 @@ def getGPS():
         else:
             return None,None
     except Exception as e:
-        tools.debug("Error getting GPS: " + str(e),'v')
+        checkError("Error getting GPS: " + str(e))
         return None,None

@@ -26,14 +26,10 @@ def LoRaWANListSentDevices():
         return 8, "Step 0 - Error getting device in sentlist: " + str(e)
         print("Step 0 - Error getting new device in sentlist: " + str(e))
 
-def LoRaWANSentListCleanDevices(deviceList):
+def LoRaWANSentListCleanDevices():
     try:
-        dummy = []
         print("Step 6 - Cleaning devices in LoRaWAN Sent List")
         out = open('/sd/sentlist.csv', 'w')
-        # for dev in deviceList:
-            # strToSave = str(str(dev.addr) + "," + str(dev.timestamp)+ "\r\n")
-        out.write(dummy)
         out.close()
     except Exception as e:
         print("Step 6 - Error cleaning devices in LoRaWAN Sent list: " + str(e))

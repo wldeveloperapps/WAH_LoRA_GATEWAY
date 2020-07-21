@@ -11,6 +11,7 @@ import wilocMain
 import tools
 import globalVars
 import lorawan
+from errorissuer import checkError
 # -------------------------
 MAX_REFRESH_TIME = 300 # Code 20
 BLE_SCAN_PERIOD = 7 # Code 21
@@ -39,45 +40,45 @@ def loadConfigParameters():
             tools.debug("Step 0.5 - BLE_SCAN_PERIOD: " + str(BLE_SCAN_PERIOD),'v')
         except Exception:
             pycom.nvs_set('blescanperiod', BLE_SCAN_PERIOD)
-            tools.debug("BLE_SCAN_PERIOD error",'v')
+            checkError("BLE_SCAN_PERIOD error")
 
         try:
             MAX_REFRESH_TIME = pycom.nvs_get('maxrefreshtime')
             tools.debug("Step 0.5 - MAX_REFRESH_TIME: " + str(MAX_REFRESH_TIME),'v')
         except Exception:
             pycom.nvs_set('maxrefreshtime', MAX_REFRESH_TIME)
-            tools.debug("MAX_REFRESH_TIME error",'v') 
+            checkError("MAX_REFRESH_TIME error") 
         try:
             STANDBY_PERIOD = pycom.nvs_get('standbyperiod')
             tools.debug("Step 0.5 - STANDBY_PERIOD: " + str(STANDBY_PERIOD),'v')
         except Exception:
             pycom.nvs_set('standbyperiod', STANDBY_PERIOD)
-            tools.debug("STANDBY_PERIOD error",'v')
+            checkError("STANDBY_PERIOD error")
 
         try:
             RSSI_NEAR_THRESHOLD = pycom.nvs_get('rssithreshold')
             tools.debug("Step 0.5 - RSSI_NEAR_THRESHOLD: " + str(int(RSSI_NEAR_THRESHOLD,16) - 256),'v')
         except Exception:
             pycom.nvs_set('rssithreshold', str(RSSI_NEAR_THRESHOLD))
-            tools.debug("RSSI_NEAR_THRESHOLD error",'v')
+            checkError("RSSI_NEAR_THRESHOLD error")
 
         try:
             BUZZER_DURATION = pycom.nvs_get('buzzerduration')
             tools.debug("Step 0.5 - BUZZER_DURATION: " + str(BUZZER_DURATION),'v')
         except Exception:
             pycom.nvs_set('buzzerduration', BUZZER_DURATION)
-            tools.debug("BUZZER_DURATION error",'v')
+            checkError("BUZZER_DURATION error")
         
         try:
             STATISTICS_REPORT_INTERVAL = pycom.nvs_get('statsinterval')
-            STATISTICS_REPORT_INTERVAL = 60 # Force parameter value
+            # STATISTICS_REPORT_INTERVAL = 60 # Force parameter value
             tools.debug("Step 0.5 - STATISTICS_REPORT_INTERVAL: " + str(STATISTICS_REPORT_INTERVAL),'v')
         except Exception:
             pycom.nvs_set('statsinterval', STATISTICS_REPORT_INTERVAL)
-            tools.debug("STATISTICS_REPORT_INTERVAL error",'v')
+            checkError("STATISTICS_REPORT_INTERVAL error")
         
     except Exception as e1:
-        tools.debug("Step 18 - Error loading config parameters: " + str(e1),'v') 
+        checkError("Step 18 - Error loading config parameters: " + str(e1)) 
 
 def sleepProcess():
     global STANDBY_PERIOD
@@ -90,15 +91,13 @@ def sleepProcess():
         pycom.nvs_set('rtc', str(int(utime.time())))
         tools.sleepWiloc(int(STANDBY_PERIOD))
     except Exception as e:
-        tools.debug("Error going to light sleep: " + str(e),'v') 
+        checkError("Error going to light sleep: " + str(e)) 
 
 try:
     initRTC()
     tools.debug("Step 0 - Starting Main program on " + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8')) + ' - Time: ' + str((int(utime.time()))),'v')
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
-    # pycom.nvs_set('statsinterval', '3c')
-    # _thread.start_new_thread(wilocMain.initRTC,(2))
-    # pycom.nvs_set('rssithreshold', RSSI_NEAR_THRESHOLD)
+    # pycom.nvs_set('statsinterval', '60')
     loadConfigParameters()
     wilocMain.loadSDCardData()
     lorawan.join_lora()
@@ -142,12 +141,11 @@ try:
             statSend = wilocMain.createStatisticsReport()
             if len(statSend) > 0:
                 lorawan.sendLoRaWANMessage(statSend)
-                # print("Statistics loop: " + str(globalVars.stop_sleep_flag))
                 pycom.nvs_set('laststatsreport', str(int(utime.time())))
 
         sleepProcess()
 
 except Exception as e:
-    tools.debug("Error: " + str(e),'v')
+    checkError("Main Error: " + str(e))
     pycom.nvs_set('rtc', str(int(utime.time())))
     machine.reset()

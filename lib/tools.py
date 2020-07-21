@@ -4,7 +4,6 @@ import time
 import os
 import uos
 import utime
-import pycom 
 import ubinascii
 import machine
 import globalVars
@@ -25,32 +24,6 @@ def isInList(device, dmList):
 
 def StopSDCard():
     sd.deinit()
-
-def UpdateConfigurationParameters(payload):
-    try:
-        
-        if payload[0:2] == '20':
-            print("Step CC - Setting Max Refresh Time to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('maxrefreshtime', int(payload[2:6],16))
-        if payload[0:2] == '21':
-            print("Step CC - Setting BLE Scan Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('blescanperiod', int(payload[2:6],16))
-        if payload[0:2] == '22':
-            print("Step CC - Setting StandBy Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('standbyperiod', int(payload[2:6],16))
-        if payload[0:2] == '23':
-            print("Step CC - Setting RSSI Near Threshold to " + str(int(payload[2:6],16)-256))
-            pycom.nvs_set('rssithreshold', str(payload[2:6],16))
-        if payload[0:2] == '24':
-            print("Step CC - Setting Statistics Report Interval to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('statsinterval', int(payload[2:6],16))
-        if payload[0:2] == '25':
-            print("Step CC - Setting Buzzer Duration Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('buzzerduration', int(payload[2:6],16))
-            
-    except Exception as e:
-        print("Step CC -  Error setting configuiration parameters: " + str(e))
-        return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
 
 def getBatteryLevel():
     try:

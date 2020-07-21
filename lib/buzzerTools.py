@@ -1,13 +1,11 @@
-from machine import Pin, SD
+from machine import Pin
 from lib.beacon import DeviceBuzzer
-import time
-import os
-import uos
-import ujson
 import utime
 import pycom 
 import ubinascii
+import machine
 
+# dac = machine.DAC('P22')
 p_out = Pin('P10', mode=Pin.OUT)
 buzzer_lines = []
 
@@ -15,15 +13,23 @@ def BuzzerTurnOff():
     p_out.hold(False)
     p_out.value(0)
     p_out.hold(True)
+    # dac.write(1)
+    # time.sleep(duration)
+    # dac.write(0)
 
 def BeepBuzzer(duration):
-    # print("Step 4 - Buzzer is sounding")
-    p_out.hold(False)
-    p_out.value(1)
-    time.sleep(duration)
-    p_out.value(0)
-    p_out.hold(True)
-    time.sleep(duration)
+    try:
+        # print("Step 4 - Buzzer is sounding")
+        p_out.hold(False)
+        p_out.value(1)
+        # dac.write(1)
+        utime.sleep(duration)
+        # dac.write(0)
+        p_out.value(0)
+        p_out.hold(True)
+        # time.sleep(duration)
+    except Exception as e:
+        print("Error buzzering: " + str(e))
 
 def BuzzerListGetDevices():
     try:

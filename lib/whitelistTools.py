@@ -32,9 +32,10 @@ def WhiteListNewDevice(devString):
         listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
         print("##### Creating registers in whitelist: " + str(listDevices))
         f = open('/sd/whitelist.csv', 'a')
+        strToSave = ""
         for devDummy in listDevices:
             # TODO Check if the device already exists in the .csv
-            strToSave = str(str(devDummy) + "," + str(int(utime.time()))+ "\r\n")
+            strToSave = strToSave + str(str(devDummy) + "," + str(int(utime.time()))+ "\r\n")
             print("##### Including device in whitelist: " + str(strToSave))
         f.write(strToSave)
         f.close()

@@ -6,7 +6,6 @@ import socket
 import machine
 import utime
 import pycom
-import tools
 import _thread
 from lib.loRaReportsTools import LoRaWANSentListCleanDevices
 from lib.whitelistTools import WhiteListNewDevice, WhiteListDeleteDevices
@@ -14,6 +13,7 @@ from lib.buzzerTools import BeepBuzzer, BuzzerListCleanDevices
 from lib.buzzertools import BeepBuzzer
 from lib.rtcmgt import initRTC, forceRTC
 import globalVars
+from errorissuer import checkError
 
 LORA_CHANNEL = 1
 LORA_NODE_DR = 4
@@ -121,7 +121,7 @@ def joinLoRaWANModule(lora):
             print('Joined!!')
             lora.nvram_save()
     except Exception as e:
-        print("Step 0.1 - Error initializaing LoRaWAN module: " + str(e))
+        checkError("Step 0.1 - Error initializaing LoRaWAN module: " + str(e))
         strError.append('3')
 
 def initLoRaWANSocket(lora_socket, lora):
@@ -136,7 +136,7 @@ def initLoRaWANSocket(lora_socket, lora):
         lora_socket.setblocking(False)
         lora_socket.bind(1)
     except Exception as e:
-        print("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(e))
+        checkError("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(e))
         strError.append('2')
 
 def lora_cb(lora):
@@ -171,16 +171,14 @@ def lora_cb(lora):
                         pycom.nvs_erase_all()
                         machine.reset()
                     elif payload[0:2] == 'cc': # Change configuration parameters
-                        tools.UpdateConfigurationParameters(payload[2:])
+                        UpdateConfigurationParameters(payload[2:])
                         machine.reset()
                     elif payload[0:2] == 'd0': # Syncronize RTC
                         forceRTC(int(payload[2:10],16))
                         pycom.nvs_set('rtc', int(payload[2:10],16))
-                        utime.sleep(2)
+                        utime.sleep(5)
                         dt = pycom.nvs_get('rtc')
-                        print("New RTC: " + str(dt))
-                        utime.sleep(1)
-                        print("Step SYNCRO - Syncronizing RTC from Server to " + str(int(payload[2:10],16)))
+                        print("Step SYNCRO - Syncronized RTC from Server to " + str(dt))
                     elif payload[0:2] == 'dc': # Change Debug Mode
                         dummy = int(payload[2:4],16)
                         print("Change debug mode: " + str(dummy))
@@ -205,8 +203,34 @@ def lora_cb(lora):
         if events & LoRa.TX_FAILED_EVENT:
             print("#### Error TxEvent ####")
     except Exception as e1:
-        print("Step DL - Error managing downlink: " + str(e1)) 
-        strError.append('16')
+        checkError("Step DL - Error managing downlink: " + str(e1)) 
+
+def UpdateConfigurationParameters(payload):
+    try:
+        
+        if payload[0:2] == '20':
+            print("Step CC - Setting Max Refresh Time to " + str(int(payload[2:6],16)))
+            pycom.nvs_set('maxrefreshtime', int(payload[2:6],16))
+        if payload[0:2] == '21':
+            print("Step CC - Setting BLE Scan Period to " + str(int(payload[2:6],16)))
+            pycom.nvs_set('blescanperiod', int(payload[2:6],16))
+        if payload[0:2] == '22':
+            print("Step CC - Setting StandBy Period to " + str(int(payload[2:6],16)))
+            pycom.nvs_set('standbyperiod', int(payload[2:6],16))
+        if payload[0:2] == '23':
+            print("Step CC - Setting RSSI Near Threshold to " + str(int(payload[2:6],16)-256))
+            pycom.nvs_set('rssithreshold', str(payload[2:6],16))
+        if payload[0:2] == '24':
+            print("Step CC - Setting Statistics Report Interval to " + str(int(payload[2:6],16)))
+            pycom.nvs_set('statsinterval', int(payload[2:6],16))
+        if payload[0:2] == '25':
+            print("Step CC - Setting Buzzer Duration Period to " + str(int(payload[2:6],16)))
+            pycom.nvs_set('buzzerduration', int(payload[2:6],16))
+            
+    except Exception as e:
+        print("Step CC -  Error setting configuiration parameters: " + str(e))
+        return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
+
 
 def join_lora():
     global lora
@@ -218,50 +242,30 @@ def join_lora():
         initLoRaWANSocket(lora_socket, lora)
         utime.sleep(2)
     except Exception as ee:
-        print("Error joining LoRa Network: " + str(ee))
+        checkError("Error joining LoRa Network: " + str(ee))
 
 def sendLoRaWANMessage(payload):
     global lora_flag
     global lora_socket
     try:
-        # print("In Sending message starting method: " + str(globalVars.stop_sleep_flag))
         if lora.has_joined():
-            # _thread.start_new_thread(sendPayload,(payload,))
             sendPayload(payload)
-            # print("Sending LoRaWAN message: " + str(payload))
-            # lora_socket.setblocking(True)
-            # lora_socket.send(bytes(payload))
-            # lora_socket.setblocking(False)
-            # globalVars.stop_sleep_flag = False
-            # print("In Sending message final method: " + str(globalVars.stop_sleep_flag))
-            
         else:
             print("Impossible to send because device is not joined")
-        # else:
-        #     join_lora()
-        #     utime.sleep(2)
-        #     if lora.has_joined():
-        #         print("Sending LoRaWAN message after re-joining: " + str(payload))
-        #         lora_socket.setblocking(True)
-        #         lora_socket.send(bytes(payload))
-        #         lora_socket.setblocking(False)
-        #         utime.sleep(2)
-        #         # return True
-        #     # return False
+            join_lora()
+            if lora.has_joined():
+                sendPayload(payload)
     except Exception as eee:
-        print("Error sending LoRaWAN message: " + str(eee))
+        checkError("Error sending LoRaWAN message: " + str(eee))
 
 def sendPayload(payload):
     global lora_socket
     try:
-        # globalVars.stop_sleep_flag = True
         print("Sending LoRaWAN payload init: " + str(payload))
         lora_socket.setblocking(True)
         _thread.start_new_thread(lora_socket.send,(bytes(payload),))
         lora_socket.setblocking(False)
-        # globalVars.stop_sleep_flag = False
-        # print("Sending LoRaWAN payload end: " + str(globalVars.stop_sleep_flag))
         utime.sleep(2)
     except Exception as eee:
-        print("Error sending LoRaWAN payload: " + str(eee))
+        checkError("Error sending LoRaWAN payload: " + str(eee))
 

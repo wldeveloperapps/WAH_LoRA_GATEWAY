@@ -21,3 +21,13 @@
 # Code 19: Error sending statistics reports
 # Code 20: Error getting battery level
 # Code 21: Error Filtering RSSI values
+import machine
+
+def checkError(message):
+    try:
+        print("Error control: " +str(message))
+        if 'I2C bus error' in str(message):
+            machine.reset()     
+    except Exception as e:
+        print("Error managing error issuer")
+        machine.reset()
