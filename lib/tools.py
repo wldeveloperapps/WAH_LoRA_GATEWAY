@@ -44,8 +44,8 @@ def getBatteryLevel():
 
 def sleepWiloc(period):
     try:
-        # print("In sleep method: " + str(globalVars.stop_sleep_flag))
-        if globalVars.stop_sleep_flag == False:
+        debug("In sleep method: " + str(globalVars.stop_sleep_flag) + " - LoRaSending: " + str(globalVars.flag_sent),'vv')
+        if globalVars.stop_sleep_flag == False and globalVars.flag_sent == False:
             utime.sleep(period)
     except Exception as e:
         print("Step BAT -  Error getting battery level: " + str(e))

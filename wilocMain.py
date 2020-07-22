@@ -13,14 +13,11 @@ import struct
 import pycom
 import gc
 import globalVars
+import lorawan
 
-# ---------------
-# deviceID = 2 # PyTrack
-deviceID = 1 # PySense
-# ---------------
 sd = SD()
 gc.enable()
-if deviceID == 2:
+if globalVars.deviceID == 2:
     from pytrack import Pytrack
     from L76GNSS import L76GNSS
     py = Pytrack()
@@ -112,15 +109,74 @@ def loadSDCardData():
         checkError("Step 0 - Error load SD Card information: " + str(e))
         strError.append('10')
 
+def forceConfigParameters():
+    try:
+        pycom.nvs_set('blescanperiod', globalVars.BLE_SCAN_PERIOD)
+        pycom.nvs_set('maxrefreshtime', globalVars.MAX_REFRESH_TIME)
+        pycom.nvs_set('standbyperiod', globalVars.STANDBY_PERIOD)
+        pycom.nvs_set('rssithreshold', str(globalVars.RSSI_NEAR_THRESHOLD))
+        pycom.nvs_set('buzzerduration', globalVars.BUZZER_DURATION)
+        pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
+        utime.sleep(2)
+    except Exception as e:
+        checkError("Error forcing configuration parameters: " + str(e))
+
+def loadConfigParameters():
+    try:
+        try:
+            globalVars.BLE_SCAN_PERIOD = pycom.nvs_get('blescanperiod')
+            tools.debug("Step 0.5 - BLE_SCAN_PERIOD: " + str(globalVars.BLE_SCAN_PERIOD),'v')
+        except Exception:
+            pycom.nvs_set('blescanperiod', globalVars.BLE_SCAN_PERIOD)
+            checkError("BLE_SCAN_PERIOD error")
+
+        try:
+            globalVars.MAX_REFRESH_TIME = pycom.nvs_get('maxrefreshtime')
+            tools.debug("Step 0.5 - MAX_REFRESH_TIME: " + str(globalVars.MAX_REFRESH_TIME),'v')
+        except Exception:
+            pycom.nvs_set('maxrefreshtime', globalVars.MAX_REFRESH_TIME)
+            checkError("MAX_REFRESH_TIME error") 
+        try:
+            globalVars.STANDBY_PERIOD = pycom.nvs_get('standbyperiod')
+            tools.debug("Step 0.5 - STANDBY_PERIOD: " + str(globalVars.STANDBY_PERIOD),'v')
+        except Exception:
+            pycom.nvs_set('standbyperiod', globalVars.STANDBY_PERIOD)
+            checkError("STANDBY_PERIOD error")
+
+        try:
+            globalVars.RSSI_NEAR_THRESHOLD = pycom.nvs_get('rssithreshold')
+            tools.debug("Step 0.5 - RSSI_NEAR_THRESHOLD: " + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256),'v')
+        except Exception:
+            pycom.nvs_set('rssithreshold', str(globalVars.RSSI_NEAR_THRESHOLD))
+            checkError("RSSI_NEAR_THRESHOLD error")
+
+        try:
+            globalVars.BUZZER_DURATION = pycom.nvs_get('buzzerduration')
+            tools.debug("Step 0.5 - BUZZER_DURATION: " + str(globalVars.BUZZER_DURATION),'v')
+        except Exception:
+            pycom.nvs_set('buzzerduration', globalVars.BUZZER_DURATION)
+            checkError("BUZZER_DURATION error")
+        
+        try:
+            globalVars.STATISTICS_REPORT_INTERVAL = pycom.nvs_get('statsinterval')
+            # STATISTICS_REPORT_INTERVAL = 60 # Force parameter value
+            tools.debug("Step 0.5 - STATISTICS_REPORT_INTERVAL: " + str(globalVars.STATISTICS_REPORT_INTERVAL),'v')
+        except Exception:
+            pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
+            checkError("STATISTICS_REPORT_INTERVAL error")
+        
+    except Exception as e1:
+        checkError("Step 18 - Error loading config parameters: " + str(e1)) 
+
 def checkWhiteList(dev):
     global devices_whitelist
     try:
         if dev not in devices_whitelist:
-            tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vv')
+            tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
             if str(globalVars.debug_cc).count('v') <= 1:
                 BeepBuzzer(0.1)
         else:
-            tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vv')
+            tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
 
     except Exception as e:
         checkError("Error getting battery level, " + str(e))
@@ -182,30 +238,31 @@ def ForceBuzzerSound(duration):
     except Exception as e:
         checkError("Error forcing buzzer")
 
-def checkTimeForStatistics(STATISTICS_REPORT_INTERVAL):
+def checkTimeForStatistics(INTERVAL):
     try:
         tools.debug("Step 6 - Checking time for statistics",'vvv')
+        # tools.debug("Test 0",'vvv')
         ts = int(utime.time())
+        # tools.debug("Test 1",'vvv')
         try:
             last_report = pycom.nvs_get('laststatsreport')
         except Exception:
             pycom.nvs_set('laststatsreport', str(ts))
             last_report = ts
-
-        if (int(last_report) + int(STATISTICS_REPORT_INTERVAL)) < ts:
+        # tools.debug("Test 2",'vvv')
+        if (int(last_report) + int(INTERVAL)) < ts:
             return True
         else:
-            tools.debug("Step 6 - No statistics reports yet, remaining: " + str(((int(last_report) + int(STATISTICS_REPORT_INTERVAL)) - ts)),'v')
+            tools.debug("Step 6 - No statistics reports yet, remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
             return False
     except Exception as e:
         checkError("Error checking time for statistics: " + str(e))
         return False
 
 def createStatisticsReport():
-    global deviceID
     try:
         strToSendStatistics = []
-        if deviceID == 1:
+        if globalVars.deviceID == 1:
             temperature = 0
             altitude = 0
             battery = py.read_battery_voltage()
@@ -215,7 +272,8 @@ def createStatisticsReport():
             acc_hum = int(round(humidity))
             lat =  struct.pack(">I", acc_tmp)
             lon =  struct.pack(">I", acc_hum)
-        elif deviceID == 2:
+        elif globalVars.deviceID == 2:
+            tools.debug("Waiting for GPS",'vv')
             lat, lon = getGPS()
             if lat is None or lon is None:
                 lat = struct.pack(">I", 0)
@@ -223,7 +281,7 @@ def createStatisticsReport():
 
         battery = py.read_battery_voltage()
         acc_bat = int(round(battery*1000))
-        dev = struct.pack(">I", deviceID)
+        dev = struct.pack(">I", globalVars.deviceID)
         bat = struct.pack(">I", acc_bat)
         dt = struct.pack(">I", utime.time())
         whiteLen = struct.pack(">I", len(devices_whitelist))
@@ -253,6 +311,18 @@ def createStatisticsReport():
         checkError("Error creating statistics report: " + str(e)) 
         strError.append('19')
         return []
+
+def sendStatisticsReport():
+    try:
+        tools.debug("Sending statistics report step 1", 'vv')
+        statSend = createStatisticsReport()
+        tools.debug("Sending statistics report step 2", 'vv')
+        if len(statSend) > 0:
+            lorawan.sendLoRaWANMessage(statSend)
+            tools.debug("Sending statistics report step 3", 'vv')
+            
+    except Exception as e:
+        checkError("Error sending statistics report: " + str(e))
 
 def getGPS():
     try:
