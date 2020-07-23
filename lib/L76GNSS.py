@@ -324,9 +324,11 @@ class L76GNSS:
 
     def coordinates(self, debug=False):
         """you are here"""
+        print("Getting coordinates, timeout: " +str(self.timeout))
         msg, latitude, longitude = None, None, None
         if not self.fix:
             self.get_fix(debug=debug)
+            
         msg = self._read_message(('RMC', 'GGA', 'GLL'), debug=debug)
         if msg is not None:
             self.Latitude = msg['Latitude']

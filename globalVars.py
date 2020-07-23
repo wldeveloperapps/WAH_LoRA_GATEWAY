@@ -1,8 +1,8 @@
 
 
 # ------ Device Type ------
-deviceID = 2 # PyTrack
-# deviceID = 1 # PySense
+# deviceID = 2 # PyTrack
+deviceID = 1 # PySense
 
 # ------ Configuration parameters --------
 MAX_REFRESH_TIME = 60 # Code 20
@@ -26,3 +26,6 @@ debug_cc = "vv"
 stop_sleep_flag = False
 flag_sent = False
 
+# -------- Lists ------------
+devices_whitelist = []
+device_sent = []

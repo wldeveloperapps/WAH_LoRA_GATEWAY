@@ -39,7 +39,7 @@ try:
     initRTC()
     tools.debug("Step 0 - Starting Main program on " + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8')) + ' - Time: ' + str((int(utime.time()))),'v')
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
-
+    
     # wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
@@ -84,7 +84,7 @@ try:
             tools.debug("Step 2 - There are not devices scanned",'vvv')
         
         if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
-            _thread.start_new_thread(wilocMain.sendStatisticsReport,())
+            wilocMain.sendStatisticsReport()
             pycom.nvs_set('laststatsreport', str(int(utime.time())))
 
         sleepProcess()

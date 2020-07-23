@@ -1,5 +1,5 @@
 from lib.loRaReportsTools import LoRaWANSentListCleanDevices
-from lib.whitelistTools import WhiteListNewDevice, WhiteListDeleteDevices
+from lib.whitelistTools import WhiteListNewDevice, WhiteListDeleteDevices, WhiteListDeleteSpecificDevice
 from lib.buzzerTools import BeepBuzzer, BuzzerListCleanDevices
 from lib.buzzertools import BeepBuzzer
 from lib.rtcmgt import initRTC, forceRTC
@@ -153,21 +153,31 @@ def lora_cb(lora):
                     if payload[0:2] == '0a': # Add new devices to the whitelist
                         print("##### Message received of new device in whitelist, lenght: " + str(len(payload)/2));
                         WhiteListNewDevice(payload[2:])
-                        machine.reset()
+                        BeepBuzzer(2)
+                        # machine.reset()
+                    if payload[0:2] == '0d': # Delete device from the whitelist
+                        WhiteListDeleteSpecificDevice(payload[2:])
+                        BeepBuzzer(2)
+                        # machine.reset()
                     elif payload[0:2] == 'fa': # Delete entire whitelist file
                         WhiteListDeleteDevices()
+                        BeepBuzzer(2)
                         machine.reset()
                     elif payload[0:2] == 'fb': # Delete entire buzzer file
                         BuzzerListCleanDevices()
+                        BeepBuzzer(2)
                         machine.reset()
                     elif payload[0:2] == 'fc': # Delete entire sent file
                         LoRaWANSentListCleanDevices()
+                        BeepBuzzer(2)
                         machine.reset()
                     elif payload[0:2] == 'fd': # Delete entire NVS Memory
                         pycom.nvs_erase_all()
+                        BeepBuzzer(2)
                         machine.reset()
                     elif payload[0:2] == 'cc': # Change configuration parameters
                         UpdateConfigurationParameters(payload[2:])
+                        BeepBuzzer(2)
                         machine.reset()
                     elif payload[0:2] == 'd0': # Syncronize RTC
                         forceRTC(int(payload[2:10],16))
@@ -175,6 +185,7 @@ def lora_cb(lora):
                         utime.sleep(5)
                         dt = pycom.nvs_get('rtc')
                         print("Step SYNCRO - Syncronized RTC from Server to " + str(dt))
+                        BeepBuzzer(2)
                     elif payload[0:2] == 'dc': # Change Debug Mode
                         dummy = int(payload[2:4],16)
                         print("Change debug mode: " + str(dummy))
@@ -187,15 +198,17 @@ def lora_cb(lora):
                         elif dummy == 3:
                             globalVars.debug_cc = 'vvv'
                         print("Mode changed to: " + str(globalVars.debug_cc))
+                        BeepBuzzer(2)
                     elif payload[0:2] == 'b0': # Force Alarm
                         BeepBuzzer(int(payload[2:4],16))
                     else:
                         print("##### Message received other code: " + str(payload[0:2]) + " Lenght: " + str(len(payload)/2))
                     
-                    BeepBuzzer(2)
+                    
         if events & LoRa.TX_PACKET_EVENT:
             txt = "tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx)
             print(txt)
+            BeepBuzzer(0.5)
         if events & LoRa.TX_FAILED_EVENT:
             print("#### Error TxEvent ####")
     except Exception as e1:
@@ -236,15 +249,13 @@ def join_lora():
     try:
         joinLoRaWANModule(lora)
         initLoRaWANSocket(lora_socket, lora)
-        utime.sleep(2)
+        utime.sleep(1)
     except Exception as ee:
         checkError("Error joining LoRa Network: " + str(ee))
 
 def sendLoRaWANMessage(payload):
     global lora_socket
     try:
-        # changeFlagSent(True)
-        # lora_socket.setblocking(False)
         if lora.has_joined():
              _thread.start_new_thread(sendPayload,(payload,))
         else:
@@ -252,7 +263,6 @@ def sendLoRaWANMessage(payload):
             join_lora()
             if lora.has_joined():
                 _thread.start_new_thread(sendPayload,(payload,))
-        # lora_socket.setblocking(False)
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 
@@ -283,11 +293,9 @@ def sendPayload(payload):
         print("Sending LoRaWAN payload init: " + str(payload))
         lora_socket.send(bytes(payload))
         print("Message sent succesfully")
-        # changeFlagSent(False)
         _thread.exit()
     except Exception as eee:
         checkError("Error sending LoRaWAN payload: " + str(eee))
-        # changeFlagSent(False)
     except SystemExit as se:
         print("System exit from thread properly: " + str(se))
         gc.collect()

@@ -30,8 +30,7 @@ else:
 os.mount(sd, '/sd')
 wdt = WDT(timeout=300000)
 # ---------------
-devices_whitelist = []
-device_sent = []
+
 strError = []
 # ---------------
 
@@ -84,25 +83,21 @@ def getBatteryLevel(py):
         return 0
 
 def loadSDCardData():
-    global devices_whitelist
-    # global device_buzzer
-    global device_sent
-
     try:
         ret = WhiteListGetDevices() 
         if ret[0] == 1:
             # print("Step 0 - Getting whitelist")
-            devices_whitelist = ret[1]
+            globalVars.devices_whitelist = ret[1]
         else:
-            print("Step 0 - Error Getting whitelist: " + str(ret[1]))
+            checkError("Step 0 - Error Getting whitelist: " + str(ret[1]))
             strError.append(ret[0])
 
         sent = LoRaWANListSentDevices() 
         if sent[0] == 1:
             # print("Step 0 - Getting LoRaWAN Sent list")
-            device_sent = sent[1]
+            globalVars.device_sent = sent[1]
         else:
-            print("Step 0 - Error Getting LoRaWAN Sent devices list: " + str(sent[1]))
+            checkError("Step 0 - Error Getting LoRaWAN Sent devices list: " + str(sent[1]))
             strError.append(sent[0])
 
     except Exception as e:
@@ -169,9 +164,8 @@ def loadConfigParameters():
         checkError("Step 18 - Error loading config parameters: " + str(e1)) 
 
 def checkWhiteList(dev):
-    global devices_whitelist
     try:
-        if dev not in devices_whitelist:
+        if dev not in globalVars.devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
             if str(globalVars.debug_cc).count('v') <= 1:
                 BeepBuzzer(0.1)
@@ -182,12 +176,11 @@ def checkWhiteList(dev):
         checkError("Error getting battery level, " + str(e))
 
 def checkTimeToSend(devs, MAX_REFRESH_TIME):
-    global device_sent
     try:
         ret_devices = []
         ts = int(utime.time())
         for dev in devs:
-            dmDev = tools.isInList(dev, device_sent)
+            dmDev = tools.isInList(dev, globalVars.device_sent)
             if dmDev is not None:
                 if (dmDev.timestamp + int(MAX_REFRESH_TIME)) < ts:
                     ret_devices.append(dev)
@@ -203,7 +196,6 @@ def checkTimeToSend(devs, MAX_REFRESH_TIME):
 
 def createPackageToSend(devs):
     global py
-    global device_sent
     try:
         tools.debug("Step 4 - Creating message to send",'v')
         strToSend = []
@@ -217,7 +209,7 @@ def createPackageToSend(devs):
         for dev in devs:
             for bmac in dev.rawMac:
                 strToSend.append(bmac)
-            device_sent = LoRaWANSentListUpdateDevice(dev)
+            globalVars.device_sent = LoRaWANSentListUpdateDevice(dev)
 
         return strToSend
     except Exception as e1:
@@ -284,8 +276,8 @@ def createStatisticsReport():
         dev = struct.pack(">I", globalVars.deviceID)
         bat = struct.pack(">I", acc_bat)
         dt = struct.pack(">I", utime.time())
-        whiteLen = struct.pack(">I", len(devices_whitelist))
-        sentLen = struct.pack(">I", len(device_sent))
+        whiteLen = struct.pack(">I", len(globalVars.devices_whitelist))
+        sentLen = struct.pack(">I", len(globalVars.device_sent))
         strToSendStatistics.append(dev[3])
         strToSendStatistics.append(bat[2])
         strToSendStatistics.append(bat[3])
@@ -329,16 +321,19 @@ def getGPS():
         l76 = L76GNSS(py)
         rtc = machine.RTC()
         coord = (None,None)
-        coord = l76.coordinates(debug=False)
-        if coord['latitude'] is not None and coord['longitude'] is not None:
-        # if coord[0] is not None and coord[1] is not None:
-            big_endian_latitude = bytearray(struct.pack("f", coord['latitude']))  
-            big_endian_longitude = bytearray(struct.pack("f", coord['longitude']))  
+        coord = l76.coordinates_v2(debug=False)
+        # if coord['latitude'] is not None and coord['longitude'] is not None:
+        if coord[0] is not None and coord[1] is not None:
+            # big_endian_latitude = bytearray(struct.pack("f", coord['latitude']))  
+            # big_endian_longitude = bytearray(struct.pack("f", coord['longitude'])) 
+            big_endian_latitude = bytearray(struct.pack("f", coord[0]))  
+            big_endian_longitude = bytearray(struct.pack("f", coord[1]))  
             # print([ "0x%02x" % b for b in big_endian_latitude ])
             dt = l76.getUTCDateTimeTuple(debug=True)
             if dt is not None:
                 rtc.init(dt)
-            tools.debug("Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
+            # tools.debug("Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
+            tools.debug("Latitude: " + str(coord[0]) + " - Longitude: " + str(coord[1]) + " - Timestamp: " + str(dt),'v')
             # l76.enterStandBy(debug=False)
             return big_endian_latitude, big_endian_longitude
         else:
