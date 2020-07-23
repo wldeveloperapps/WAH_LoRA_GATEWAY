@@ -33,3 +33,9 @@ def checkCalendar(req_day, req_hour, req_minute):
         print("")
     except Exception as e:
         print("Error")
+
+def updateRTC():
+    try:
+        pycom.nvs_set('rtc', str(int(utime.time())))
+    except Exception as e:
+        print("Error updating RTC")

@@ -243,6 +243,7 @@ def checkTimeForStatistics(INTERVAL):
             last_report = ts
         # tools.debug("Test 2",'vvv')
         if (int(last_report) + int(INTERVAL)) < ts:
+            pycom.nvs_set('rtc', str(int(utime.time())))
             return True
         else:
             tools.debug("Step 6 - No statistics reports yet, remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
@@ -312,7 +313,7 @@ def sendStatisticsReport():
         if len(statSend) > 0:
             lorawan.sendLoRaWANMessage(statSend)
             tools.debug("Sending statistics report step 3", 'vv')
-            
+           
     except Exception as e:
         checkError("Error sending statistics report: " + str(e))
 

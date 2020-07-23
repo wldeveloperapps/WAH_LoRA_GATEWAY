@@ -92,8 +92,7 @@ def WhiteListDeleteSpecificDevice(devString):
                     out.write(ln)
                     lstToSave.append(ln)
         
-        if len(lstToSave) > 0:
-            globalVars.devices_whitelist = lstToSave
+        globalVars.devices_whitelist = lstToSave
 
         tools.debug("New whitelist deleted: " + str(globalVars.devices_whitelist),'vv')
     except Exception as e:

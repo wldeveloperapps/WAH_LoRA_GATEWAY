@@ -258,11 +258,15 @@ def sendLoRaWANMessage(payload):
     try:
         if lora.has_joined():
              _thread.start_new_thread(sendPayload,(payload,))
+             utime.sleep(2)
+            # sendPayload(payload)
         else:
             print("Impossible to send because device is not joined")
             join_lora()
             if lora.has_joined():
                 _thread.start_new_thread(sendPayload,(payload,))
+                utime.sleep(2)
+                # sendPayload(payload)
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 

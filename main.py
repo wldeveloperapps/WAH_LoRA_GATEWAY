@@ -1,7 +1,7 @@
 from network import Bluetooth
 from lib.beacon import Beacon
-from lib.rtcmgt import initRTC
 from errorissuer import checkError
+import rtcmgt
 import machine
 import ubinascii
 import utime
@@ -30,16 +30,14 @@ def sleepProcess():
         wilocMain.feedWatchdog()
         mac_scanned[:]=[]
         scanned_frames[:]=[]
-        pycom.nvs_set('rtc', str(int(utime.time())))
         tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
     except Exception as e:
         checkError("Error going to light sleep: " + str(e)) 
 
 try:
-    initRTC()
+    rtcmgt.initRTC()
     tools.debug("Step 0 - Starting Main program on " + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8')) + ' - Time: ' + str((int(utime.time()))),'v')
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
-    
     # wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
@@ -47,11 +45,8 @@ try:
     bluetooth = Bluetooth()
     while True:
         tools.debug('Step 1 - Starting BLE scanner ' + str(int(utime.time())),'v')
-        gc.collect()
-        tools.debug(gc.mem_free(),'v')
-        tools.debug("Current thread is: %r" % (_thread.get_ident()),'v')
+        rtcmgt.updateRTC()
         bluetooth.start_scan(int(globalVars.BLE_SCAN_PERIOD))
-        wilocMain.feedWatchdog()
         while bluetooth.isscanning():
             adv = bluetooth.get_adv()
             if adv:
@@ -65,7 +60,7 @@ try:
                     scanned_frames.append(Beacon(adv.mac,adv.rssi,None,None,None,None))
         
         tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())) + " - Devices: " + str(len(mac_scanned)) + " - Packages: " + str(len(scanned_frames)),'v')
-        wilocMain.feedWatchdog()
+
         if len(scanned_frames) > 0:
             dummy_list = wilocMain.rssiFilterDevices(globalVars.RSSI_NEAR_THRESHOLD,mac_scanned, scanned_frames)
             if len(dummy_list) > 0:
@@ -84,12 +79,13 @@ try:
             tools.debug("Step 2 - There are not devices scanned",'vvv')
         
         if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
-            wilocMain.sendStatisticsReport()
             pycom.nvs_set('laststatsreport', str(int(utime.time())))
+            wilocMain.sendStatisticsReport()
 
         sleepProcess()
 
 except Exception as e:
     checkError("Main Error: " + str(e))
     pycom.nvs_set('rtc', str(int(utime.time())))
+    utime.sleep(1)
     machine.reset()
