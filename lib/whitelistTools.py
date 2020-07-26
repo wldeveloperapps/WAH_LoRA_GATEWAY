@@ -51,25 +51,25 @@ def WhiteListNewDevice(devString):
         listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
         print("##### Creating registers in whitelist: " + str(listDevices))
         f = open('/sd/whitelist.csv', 'r')
-        sent_lines = f.readlines()
+        white_lines = f.readlines()
         f.close()
-        
+        lstDummy = []
         with open('/sd/whitelist.csv', 'w') as out:
             for dev in listDevices:
                 exists = False
-                for wht in sent_lines:
+                for wht in white_lines:
                     if dev in wht.split(',')[0]:
                         exists = True
                         break
                 if exists == False:
-                    sent_lines.append(str(str(dev) + "," + str(int(utime.time()))+ "\r\n"))
-        
-            globalVars.devices_sent = sent_lines
+                    white_lines.append(str(str(dev) + "," + str(int(utime.time()))+ "\r\n"))
 
-            for ln in sent_lines:
+            for ln in white_lines:
                 out.write(ln)
+                lstDummy.append(ln.split(',')[0])
 
-        tools.debug("New whitelist inserted: " + str(globalVars.devices_sent),'vv')
+            globalVars.devices_whitelist = lstDummy
+        tools.debug("New whitelist inserted: " + str(globalVars.devices_whitelist),'vv')
     except Exception as e:
         print("##### - Error writing new device in whitelist: " + str(e))  
 
@@ -96,7 +96,7 @@ def WhiteListDeleteSpecificDevice(devString):
             for ln in sent_lines:
                 if ln.split(',')[0] not in listDevices:
                     out.write(ln)
-                    lstToSave.append(ln)
+                    lstToSave.append(ln.split(',')[0])
         
         globalVars.devices_whitelist = lstToSave
 
