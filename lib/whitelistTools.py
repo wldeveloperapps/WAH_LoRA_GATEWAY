@@ -56,11 +56,15 @@ def WhiteListNewDevice(devString):
         
         with open('/sd/whitelist.csv', 'w') as out:
             for dev in listDevices:
-                if dev not in sent_lines:
+                exists = False
+                for wht in sent_lines:
+                    if dev in wht.split(',')[0]:
+                        exists = True
+                        break
+                if exists == False:
                     sent_lines.append(str(str(dev) + "," + str(int(utime.time()))+ "\r\n"))
         
-            if len(sent_lines) > 0:
-                globalVars.devices_sent = sent_lines
+            globalVars.devices_sent = sent_lines
 
             for ln in sent_lines:
                 out.write(ln)
@@ -74,18 +78,20 @@ def WhiteListDeleteDevices():
         print("##### Deleting devices from Whitelist")
         f = open('/sd/whitelist.csv', 'w')
         f.close()
+        globalVars.devices_whitelist = []
     except Exception as e:
         print("##### - Error cleaning whitelist: " + str(e))
         return 6, "##### - Error cleaning whitelist: " + str(e)
 
 def WhiteListDeleteSpecificDevice(devString):
     try:
+        # print("In deleted specific device method - Step 1")
         listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
         lstToSave = []
         f = open('/sd/whitelist.csv', 'r')
         sent_lines = f.readlines()
         f.close()
-   
+        # print("In deleted specific device method - Step 2")
         with open('/sd/whitelist.csv', 'w') as out:
             for ln in sent_lines:
                 if ln.split(',')[0] not in listDevices:

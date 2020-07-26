@@ -14,6 +14,7 @@ import pycom
 import gc
 import globalVars
 import lorawan
+import _thread
 
 sd = SD()
 gc.enable()
@@ -167,13 +168,13 @@ def checkWhiteList(dev):
     try:
         if dev not in globalVars.devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
-            if str(globalVars.debug_cc).count('v') <= 1:
+            if str(globalVars.debug_cc).count('v') <= 3:
                 BeepBuzzer(0.1)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
 
     except Exception as e:
-        checkError("Error getting battery level, " + str(e))
+        checkError("Error checking whitelist level, " + str(e))
 
 def checkTimeToSend(devs, MAX_REFRESH_TIME):
     try:
@@ -246,7 +247,7 @@ def checkTimeForStatistics(INTERVAL):
             pycom.nvs_set('rtc', str(int(utime.time())))
             return True
         else:
-            tools.debug("Step 6 - No statistics reports yet, remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
+            tools.debug("Step 6 - No statistics reports yet, WhiteList: " + str(len(globalVars.devices_whitelist)) + " - remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
             return False
     except Exception as e:
         checkError("Error checking time for statistics: " + str(e))

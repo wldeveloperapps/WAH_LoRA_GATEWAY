@@ -1,7 +1,6 @@
 from lib.loRaReportsTools import LoRaWANSentListCleanDevices
 from lib.whitelistTools import WhiteListNewDevice, WhiteListDeleteDevices, WhiteListDeleteSpecificDevice
 from lib.buzzerTools import BeepBuzzer, BuzzerListCleanDevices
-from lib.buzzertools import BeepBuzzer
 from lib.rtcmgt import initRTC, forceRTC
 from errorissuer import checkError
 from network import LoRa
@@ -155,14 +154,13 @@ def lora_cb(lora):
                         WhiteListNewDevice(payload[2:])
                         BeepBuzzer(2)
                         # machine.reset()
-                    if payload[0:2] == '0d': # Delete device from the whitelist
+                    elif payload[0:2] == '0d': # Delete device from the whitelist
                         WhiteListDeleteSpecificDevice(payload[2:])
                         BeepBuzzer(2)
                         # machine.reset()
                     elif payload[0:2] == 'fa': # Delete entire whitelist file
                         WhiteListDeleteDevices()
                         BeepBuzzer(2)
-                        machine.reset()
                     elif payload[0:2] == 'fb': # Delete entire buzzer file
                         BuzzerListCleanDevices()
                         BeepBuzzer(2)
@@ -173,12 +171,12 @@ def lora_cb(lora):
                         machine.reset()
                     elif payload[0:2] == 'fd': # Delete entire NVS Memory
                         pycom.nvs_erase_all()
-                        BeepBuzzer(2)
+                        _thread.start_new_thread(BeepBuzzer,(2,))
                         machine.reset()
                     elif payload[0:2] == 'cc': # Change configuration parameters
                         UpdateConfigurationParameters(payload[2:])
                         BeepBuzzer(2)
-                        machine.reset()
+                        # machine.reset()
                     elif payload[0:2] == 'd0': # Syncronize RTC
                         forceRTC(int(payload[2:10],16))
                         pycom.nvs_set('rtc', int(payload[2:10],16))
@@ -206,8 +204,7 @@ def lora_cb(lora):
                     
                     
         if events & LoRa.TX_PACKET_EVENT:
-            txt = "tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx)
-            print(txt)
+            print("tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx))
             BeepBuzzer(0.5)
         if events & LoRa.TX_FAILED_EVENT:
             print("#### Error TxEvent ####")
@@ -223,22 +220,27 @@ def UpdateConfigurationParameters(payload):
         if payload[0:2] == '20':
             print("Step CC - Setting Max Refresh Time to " + str(int(payload[2:6],16)))
             pycom.nvs_set('maxrefreshtime', int(payload[2:6],16))
+            globalVars.MAX_REFRESH_TIME = int(payload[2:6],16)
         if payload[0:2] == '21':
             print("Step CC - Setting BLE Scan Period to " + str(int(payload[2:6],16)))
             pycom.nvs_set('blescanperiod', int(payload[2:6],16))
+            globalVars.BLE_SCAN_PERIOD = int(payload[2:6],16)
         if payload[0:2] == '22':
             print("Step CC - Setting StandBy Period to " + str(int(payload[2:6],16)))
             pycom.nvs_set('standbyperiod', int(payload[2:6],16))
+            globalVars.STANDBY_PERIOD = int(payload[2:6],16)
         if payload[0:2] == '23':
             print("Step CC - Setting RSSI Near Threshold to " + str(int(payload[2:6],16)-256))
             pycom.nvs_set('rssithreshold', str(payload[2:6],16))
+            globalVars.RSSI_NEAR_THRESHOLD = str(payload[2:6],16)
         if payload[0:2] == '24':
             print("Step CC - Setting Statistics Report Interval to " + str(int(payload[2:6],16)))
             pycom.nvs_set('statsinterval', int(payload[2:6],16))
+            globalVars.STATISTICS_REPORT_INTERVAL = int(payload[2:6],16)
         if payload[0:2] == '25':
             print("Step CC - Setting Buzzer Duration Period to " + str(int(payload[2:6],16)))
             pycom.nvs_set('buzzerduration', int(payload[2:6],16))
-            
+            globalVars.BUZZER_DURATION = int(payload[2:6],16)
     except Exception as e:
         print("Step CC -  Error setting configuiration parameters: " + str(e))
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
@@ -257,15 +259,19 @@ def sendLoRaWANMessage(payload):
     global lora_socket
     try:
         if lora.has_joined():
-             _thread.start_new_thread(sendPayload,(payload,))
-             utime.sleep(2)
+            # lora_socket.setblocking(True)
+            # lora_socket.send(bytes(payload))
+            # lora_socket.setblocking(False)
+            _thread.start_new_thread(sendPayload,(lora_socket,payload,))
+            # utime.sleep(2)
             # sendPayload(payload)
         else:
             print("Impossible to send because device is not joined")
             join_lora()
             if lora.has_joined():
-                _thread.start_new_thread(sendPayload,(payload,))
-                utime.sleep(2)
+                _thread.start_new_thread(sendPayload,(lora_socket,payload,))
+                # lora_socket.send(bytes(payload))
+                # utime.sleep(2)
                 # sendPayload(payload)
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
@@ -291,15 +297,18 @@ def sendLoRaWANMessage(payload):
 #         print("System exit from thread properly: " + str(se))
 #         gc.collect()
 
-def sendPayload(payload):
+def sendPayload(sck,payload):
     global lora_socket
     try:
         print("Sending LoRaWAN payload init: " + str(payload))
-        lora_socket.send(bytes(payload))
-        print("Message sent succesfully")
+        sck.setblocking(True)
+        sck.send(bytes(payload))
+        sck.setblocking(False)
+        utime.sleep(2)
+        print("Sending LoRaWAN message succesfully")
         _thread.exit()
     except Exception as eee:
         checkError("Error sending LoRaWAN payload: " + str(eee))
     except SystemExit as se:
-        print("System exit from thread properly: " + str(se))
-        gc.collect()
+        # print("System exit from thread properly: " + str(se))
+        pass

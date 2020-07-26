@@ -4,6 +4,7 @@ import utime
 import pycom 
 import ubinascii
 import machine
+import _thread
 
 # dac = machine.DAC('P22')
 p_out = Pin('P10', mode=Pin.OUT)
@@ -19,17 +20,13 @@ def BuzzerTurnOff():
 
 def BeepBuzzer(duration):
     try:
-        # print("Step 4 - Buzzer is sounding")
         p_out.hold(False)
         p_out.value(1)
-        # dac.write(1)
         utime.sleep(duration)
-        # dac.write(0)
         p_out.value(0)
         p_out.hold(True)
-        # time.sleep(duration)
     except Exception as e:
-        print("Error buzzering: " + str(e))
+        print("Error buzzering 1: " + str(e))
 
 def BuzzerListGetDevices():
     try:

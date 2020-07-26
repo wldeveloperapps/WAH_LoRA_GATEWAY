@@ -44,7 +44,7 @@ try:
     lorawan.join_lora()
     bluetooth = Bluetooth()
     while True:
-        tools.debug('Step 1 - Starting BLE scanner ' + str(int(utime.time())),'v')
+        tools.debug('Step 1 - Starting BLE scanner, RSSI: ' + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256) + " - RTC: " + str(int(utime.time())) + " - REFRESH: " + str(globalVars.MAX_REFRESH_TIME) + " - SCAN: " + str(int(globalVars.BLE_SCAN_PERIOD)) + " - SLEEP: " + str(int(globalVars.STANDBY_PERIOD)) + " - DEBUG: " + str(globalVars.debug_cc) ,'v')
         rtcmgt.updateRTC()
         bluetooth.start_scan(int(globalVars.BLE_SCAN_PERIOD))
         while bluetooth.isscanning():
