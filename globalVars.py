@@ -1,8 +1,8 @@
 
 
 # ------ Device Type ------
-deviceID = 2 # PyTrack
-# deviceID = 1 # PySense
+# deviceID = 2 # PyTrack
+deviceID = 1 # PySense
 
 # ------ Configuration parameters --------
 MAX_REFRESH_TIME = 300 # Code 20
