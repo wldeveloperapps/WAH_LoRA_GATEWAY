@@ -320,22 +320,26 @@ def sendStatisticsReport():
 
 def getGPS():
     try:
+        
         l76 = L76GNSS(py)
         rtc = machine.RTC()
-        coord = (None,None)
-        coord = l76.coordinates_v2(debug=False)
-        # if coord['latitude'] is not None and coord['longitude'] is not None:
-        if coord[0] is not None and coord[1] is not None:
-            # big_endian_latitude = bytearray(struct.pack("f", coord['latitude']))  
-            # big_endian_longitude = bytearray(struct.pack("f", coord['longitude'])) 
-            big_endian_latitude = bytearray(struct.pack("f", coord[0]))  
-            big_endian_longitude = bytearray(struct.pack("f", coord[1]))  
+        coord = dict(latitude=None, longitude=None)
+        # coord = l76.coordinates_v2(debug=False)
+        if globalVars.gps_enabled == True:
+            coord = l76.get_location(debug=False, tout=globalVars.gps_timeout)
+        # print("COORD BACKUP: " + str(coord_backup))    
+        if coord['latitude'] is not None and coord['longitude'] is not None:
+        # if coord[0] is not None and coord[1] is not None:
+            big_endian_latitude = bytearray(struct.pack("f", coord['latitude']))  
+            big_endian_longitude = bytearray(struct.pack("f", coord['longitude'])) 
+            # big_endian_latitude = bytearray(struct.pack("f", coord[0]))  
+            # big_endian_longitude = bytearray(struct.pack("f", coord[1]))  
             # print([ "0x%02x" % b for b in big_endian_latitude ])
             dt = l76.getUTCDateTimeTuple(debug=True)
             if dt is not None:
                 rtc.init(dt)
-            # tools.debug("Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
-            tools.debug("Latitude: " + str(coord[0]) + " - Longitude: " + str(coord[1]) + " - Timestamp: " + str(dt),'v')
+            tools.debug("Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
+            # tools.debug("Latitude: " + str(coord[0]) + " - Longitude: " + str(coord[1]) + " - Timestamp: " + str(dt),'v')
             # l76.enterStandBy(debug=False)
             return big_endian_latitude, big_endian_longitude
         else:

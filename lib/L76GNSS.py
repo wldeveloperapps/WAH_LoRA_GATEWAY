@@ -289,12 +289,14 @@ class L76GNSS:
             self.fix = False
         if timeout is None:
             timeout = self.timeout
-        self.chrono.reset()
-        self.chrono.start()
+        tc =  Timer.Chrono()
+        tc.reset()
+        tc.start()
         chrono_running = True
 
         while chrono_running and not self.fix:
-            nmea_message = self._read_message(('RMC', 'VTG', 'GLL', 'GGA', 'GSA'), debug=debug)
+            nmea_message = self._read_message(('RMC', 'VTG', 'GLL', 'GGA', 'GSA'), debug=debug, timeout=timeout)
+            print("Waiting for a fix position, timeout: " + str(tc.read()))
             if nmea_message is not None:
                 pm = fs = False
                 try:
@@ -303,19 +305,19 @@ class L76GNSS:
                     if nmea_message['NMEA'][2:] in ('GGA', ):  #'GSA'
                         fs = int(nmea_message['FixStatus']) >= 1
                     if pm or fs:
-                        self.chrono.stop()
+                        tc.stop()
                         self.fix = True
                         self.timeLastFix = int(time.ticks_ms() / 1000) - self.timeLastFix
-                        self.ttf = round(self.chrono.read())
+                        self.ttf = round(tc.read())
                         self.Latitude = nmea_message['Latitude']
                         self.Longitude = nmea_message['Longitude']
                 except:
                     pass
-            if self.chrono.read() > timeout:
+            if tc.read() > timeout:
                 chrono_running = False
-        self.chrono.stop()
+        tc.stop()
         if debug:
-            print("fix in", self.chrono.read(), "seconds")
+            print("fix in", tc.read(), "seconds")
         return self.fix
 
     def gps_message(self, messagetype=None, debug=False):
@@ -400,11 +402,11 @@ class L76GNSS:
             COG = msg['COG-T']
         return dict(speed=speed, COG=COG)
 
-    def get_location(self, MSL=False,debug=False):
+    def get_location(self, MSL=False,debug=False, tout = 30):
         """location, altitude and HDOP"""
         msg, latitude, longitude, HDOP, altitude = None, None, None, None, None
         if not self.fix:
-            self.get_fix(debug=debug)
+            self.get_fix(debug=debug, timeout=tout)
         msg = self._read_message(messagetype='GGA')
         if msg is not None:
             latitude = msg['Latitude']
