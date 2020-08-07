@@ -20,7 +20,7 @@ LORA_NODE_DR = 4
 REGION = 'EU868'
 
 # ------ Debug -------------
-debug_cc = "vvv"
+debug_cc = "v"
 
 
 # ------ Flags ------------

@@ -204,7 +204,10 @@ def createPackageToSend(devs, frames):
         for dd in devs:
             tools.debug("Creating package to send of device: " + str(dd.addr),'vv')
             strToSend = []
-            
+            gps_stats = 66
+            bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
+            st_bat = struct.pack(">I", bat)
+            st_gps_stats = struct.pack(">I", gps_stats)
             strToSend.append(struct.pack(">I", 10)[3]) # Protocol
             # strToSend.append(struct.pack(">I", 0)) # Command ID
             strToSend.append(globalVars.latitude[0]) # Gateway Latitude 
@@ -215,12 +218,7 @@ def createPackageToSend(devs, frames):
             strToSend.append(globalVars.longitude[1]) # Gateway Longitude
             strToSend.append(globalVars.longitude[2]) # Gateway Longitude
             strToSend.append(globalVars.longitude[3]) # Gateway Longitude
-            gps_stats = 66
-            st_gps_stats = struct.pack(">I", gps_stats)
             strToSend.append(st_gps_stats[3]) # Gateway GPS Status & Report type HARDCODE
-            bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
-            st_bat = struct.pack(">I", bat)
-            strToSend.append(st_bat[2])
             strToSend.append(st_bat[3])
             # tools.debug("Getting MAC bytes of : " + str(dd.addr),'vv')
             for bmac in dd.rawMac:
