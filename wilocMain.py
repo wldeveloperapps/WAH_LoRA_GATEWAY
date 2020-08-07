@@ -195,26 +195,55 @@ def checkTimeToSend(devs, MAX_REFRESH_TIME):
         checkError("Error checking time to send data: " + str(e))
         return []
 
-def createPackageToSend(devs):
+def createPackageToSend(devs, frames):
     global py
     try:
-        tools.debug("Step 4 - Creating message to send",'v')
-        strToSend = []
-        battery = py.read_battery_voltage()
-        acc_bat = int(round(battery*1000))
-        nearCode = 0
-        nearCode = struct.pack(">I", acc_bat)
-        strToSend.append(nearCode[2])
-        strToSend.append(nearCode[3])
-        tools.debug("Step 5 - Battery level: " + str(nearCode),'v')
-        for dev in devs:
-            for bmac in dev.rawMac:
+        # CommandID - Latitude - Longitude - GPS/REP - Battery - MACDevice - LatitudeDevice - LongitudeDevice
+        # tools.debug("Step 4 - Creating messages to send, Devs: " + str(devs),'v')
+        devicesToSend = []
+        for dd in devs:
+            tools.debug("Creating package to send of device: " + str(dd.addr),'vv')
+            strToSend = []
+            
+            strToSend.append(struct.pack(">I", 10)[3]) # Protocol
+            # strToSend.append(struct.pack(">I", 0)) # Command ID
+            strToSend.append(globalVars.latitude[0]) # Gateway Latitude 
+            strToSend.append(globalVars.latitude[1]) # Gateway Latitude 
+            strToSend.append(globalVars.latitude[2]) # Gateway Latitude 
+            strToSend.append(globalVars.latitude[3]) # Gateway Latitude 
+            strToSend.append(globalVars.longitude[0]) # Gateway Longitude
+            strToSend.append(globalVars.longitude[1]) # Gateway Longitude
+            strToSend.append(globalVars.longitude[2]) # Gateway Longitude
+            strToSend.append(globalVars.longitude[3]) # Gateway Longitude
+            gps_stats = 66
+            st_gps_stats = struct.pack(">I", gps_stats)
+            strToSend.append(st_gps_stats[3]) # Gateway GPS Status & Report type HARDCODE
+            bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
+            st_bat = struct.pack(">I", bat)
+            strToSend.append(st_bat[2])
+            strToSend.append(st_bat[3])
+            # tools.debug("Getting MAC bytes of : " + str(dd.addr),'vv')
+            for bmac in dd.rawMac:
                 strToSend.append(bmac)
-            globalVars.device_sent = LoRaWANSentListUpdateDevice(dev)
+            # tools.debug("Getting last location of : " + str(dd.addr),'vv')
+            last_frame = ""
+            last_lat = ""
+            last_lon = ""
+            for fr in frames:
+                if fr.addr == dd.addr:
+                    if len(fr.raw) > 36:
+                        last_frame = str(fr.raw)[10:35]
+            if len(last_frame) > 22:
+                last_lat = last_frame[4:13]
+                last_lon = last_frame[12:21]
+            print("Last frame: " + str(last_frame) + " - Last lat: " + str(last_lat) + " - Last lon: " + str(last_lon))
+            #TODO Convert latitude & longitude to ByteArray
 
-        return strToSend
+            globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
+            devicesToSend.append(strToSend)
+        return devicesToSend
     except Exception as e1:
-        checkError("Step 5 - Error sending LoRaWAN: " + str(e1)) 
+        checkError("Step 5 - Error creating package to send: " + str(e1)) 
         strError.append('1')
         return []
 
@@ -268,10 +297,10 @@ def createStatisticsReport():
             lon =  struct.pack(">I", acc_hum)
         elif globalVars.deviceID == 2:
             tools.debug("Waiting for GPS",'vv')
-            lat, lon = getGPS()
-            if lat is None or lon is None:
-                lat = struct.pack(">I", 0)
-                lon = struct.pack(">I", 0)
+            globalVars.latitude, globalVars.longitude = getGPS()
+            if globalVars.latitude is None or lon is None:
+                globalVars.latitude = struct.pack(">I", 0)
+                globalVars.longitude = struct.pack(">I", 0)
 
         battery = py.read_battery_voltage()
         acc_bat = int(round(battery*1000))
@@ -283,14 +312,14 @@ def createStatisticsReport():
         strToSendStatistics.append(dev[3])
         strToSendStatistics.append(bat[2])
         strToSendStatistics.append(bat[3])
-        strToSendStatistics.append(lat[0])
-        strToSendStatistics.append(lat[1])
-        strToSendStatistics.append(lat[2])
-        strToSendStatistics.append(lat[3])
-        strToSendStatistics.append(lon[0])
-        strToSendStatistics.append(lon[1])
-        strToSendStatistics.append(lon[2])
-        strToSendStatistics.append(lon[3])
+        strToSendStatistics.append(globalVars.latitude[0])
+        strToSendStatistics.append(globalVars.latitude[1])
+        strToSendStatistics.append(globalVars.latitude[2])
+        strToSendStatistics.append(globalVars.latitude[3])
+        strToSendStatistics.append(globalVars.longitude[0])
+        strToSendStatistics.append(globalVars.longitude[1])
+        strToSendStatistics.append(globalVars.longitude[2])
+        strToSendStatistics.append(globalVars.longitude[3])
         strToSendStatistics.append(dt[0])
         strToSendStatistics.append(dt[1])
         strToSendStatistics.append(dt[2])
@@ -310,9 +339,12 @@ def sendStatisticsReport():
     try:
         tools.debug("Sending statistics report step 1", 'vv')
         statSend = createStatisticsReport()
+        
         tools.debug("Sending statistics report step 2", 'vv')
         if len(statSend) > 0:
-            lorawan.sendLoRaWANMessage(statSend)
+            arrToSend = []
+            arrToSend.append(statSend)
+            lorawan.sendLoRaWANMessage(arrToSend)
             tools.debug("Sending statistics report step 3", 'vv')
            
     except Exception as e:

@@ -20,11 +20,11 @@ def BuzzerTurnOff():
 
 def BeepBuzzer(duration):
     try:
-        p_out.hold(False)
+        # p_out.hold(False)
         p_out.value(1)
         utime.sleep(duration)
         p_out.value(0)
-        p_out.hold(True)
+        # p_out.hold(True)
     except Exception as e:
         print("Error buzzering 1: " + str(e))
 

@@ -42,6 +42,18 @@ def getBatteryLevel():
         print("Step BAT -  Error getting battery level: " + str(e))
         return 20, "Step BAT -  Error getting battery level: " + str(e)
 
+def getBatteryPercentage(level):
+    try:
+        max = 4200
+        min = 3400
+        batt = int(round(100 - (((max - level) * 100) / (max - min))))
+        debug("Step 5 - Battery level: " + str(batt),'v')
+        return batt
+
+    except Exception as e:
+        print("Step BAT -  Error converting percentage battery level: " + str(e))
+        return 0
+
 def sleepWiloc(period):
     try:
         debug("In sleep method: " + str(globalVars.stop_sleep_flag) + " - LoRaSending: " + str(globalVars.flag_sent),'vv')

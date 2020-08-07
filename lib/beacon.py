@@ -1,10 +1,11 @@
-class Beacon(object):
-    	def __init__(self, addr=None, rssi=None, counter= None, battery=None,temperature=None, comment=None):
+class Device(object):
+    	def __init__(self, addr=None, rssi=None, counter= None, battery=None,temperature=None, raw=None, comment=None):
 		self.addr = addr
 		self.rssi = rssi
 		self.counter = counter
 		self.battery = battery
 		self.temperature = temperature
+		self.raw = raw
 		self.comment = comment
 
 class DeviceFilter(object):

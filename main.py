@@ -1,5 +1,5 @@
 from network import Bluetooth
-from lib.beacon import Beacon
+from lib.beacon import Device
 from errorissuer import checkError
 import rtcmgt
 import machine
@@ -38,7 +38,7 @@ try:
     rtcmgt.initRTC()
     tools.debug("Step 0 - Starting Main program on " + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8')) + ' - Time: ' + str((int(utime.time()))),'v')
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
-    # wilocMain.forceConfigParameters()
+    wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
     lorawan.join_lora()
@@ -50,14 +50,15 @@ try:
         while bluetooth.isscanning():
             adv = bluetooth.get_adv()
             if adv:
-                if 'WILOC_' in str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)):
-                    tools.debug('Name: '+ str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)) +' MAC: '+ str(ubinascii.hexlify(adv.mac))+ ' RSSI: ' + str(adv.rssi) + ' DT: '+ str(int(utime.time())) +' RAW: ' + str(ubinascii.hexlify(adv.data)),'vvv')
+                if 'WILOC_01' in str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)):
+                    data_raw = str(ubinascii.hexlify(adv.data))
+                    tools.debug('Name: '+ str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)) +' MAC: '+ str(ubinascii.hexlify(adv.mac))+ ' RSSI: ' + str(adv.rssi) + ' DT: '+ str(int(utime.time())) +' RAW: ' + data_raw,'vvv')
                     if adv.mac not in mac_scanned:
                         tools.debug('Step 1 - New device detected: ' + str(ubinascii.hexlify(adv.mac)),'vv')
                         mac_scanned.append(adv.mac)
                     if adv.rssi >= (int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256):  
                         wilocMain.checkWhiteList(str(ubinascii.hexlify(adv.mac).decode('utf-8')))
-                    scanned_frames.append(Beacon(adv.mac,adv.rssi,None,None,None,None))
+                    scanned_frames.append(Device(addr=adv.mac,rssi=adv.rssi, raw=data_raw))
         
         tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())) + " - Devices: " + str(len(mac_scanned)) + " - Packages: " + str(len(scanned_frames)),'v')
 
@@ -66,7 +67,7 @@ try:
             if len(dummy_list) > 0:
                 sentDevices = wilocMain.checkTimeToSend(dummy_list, globalVars.MAX_REFRESH_TIME)
                 if len(sentDevices) > 0:
-                    pkgSend = wilocMain.createPackageToSend(sentDevices)
+                    pkgSend = wilocMain.createPackageToSend(sentDevices, scanned_frames)
                     if len(pkgSend) > 0:
                         lorawan.sendLoRaWANMessage(pkgSend)
                     else:

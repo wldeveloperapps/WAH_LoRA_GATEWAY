@@ -126,13 +126,16 @@ def initLoRaWANSocket(lora_socket, lora):
         lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 1)
         lora.callback(trigger=( LoRa.RX_PACKET_EVENT |
                                 LoRa.TX_PACKET_EVENT |
-                                LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
+                                LoRa.TX_FAILED_EVENT  ), handler=test_callback)
 
-        lora_socket.setblocking(False)
+        lora_socket.setblocking(True)
         lora_socket.bind(1)
     except Exception as e:
         checkError("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(e))
         strError.append('2')
+
+def test_callback(lora_d):
+    _thread.start_new_thread(lora_cb,(lora_d,))
 
 def lora_cb(lora):
     try:
@@ -255,28 +258,31 @@ def join_lora():
     except Exception as ee:
         checkError("Error joining LoRa Network: " + str(ee))
 
-def sendLoRaWANMessage(payload):
+def sendLoRaWANMessage(devices_payload):
     global lora_socket
     try:
         if lora.has_joined():
-            # _thread.start_new_thread(sendPayload,(lora_socket,payload,))
-            sendPayload(lora_socket,payload)
+            for dev in devices_payload:
+                sendPayload(lora_socket,dev)
+                # _thread.start_new_thread(sendPayload,(lora_socket,dev,))
         else:
             print("Impossible to send because device is not joined")
             join_lora()
             if lora.has_joined():
-                # _thread.start_new_thread(sendPayload,(lora_socket,payload,))
-                sendPayload(lora_socket,payload)
+                _thread.start_new_thread(sendPayload,(lora_socket,dev,))
+                # sendPayload(lora_socket,payload)
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 
 def sendPayload(sck,payload):
     try:
         print("Sending LoRaWAN payload init: " + str(payload))
-        sck.setblocking(True)
+        # sck.setblocking(True)
         _thread.start_new_thread(sck.send,(bytes(payload),))
-        sck.setblocking(False)
-        utime.sleep(2)
+        # sck.send(bytes(payload))
+        # sck.setblocking(False)
+        # _thread.exit()
+        # utime.sleep(2)
         print("Sending LoRaWAN message succesfully")
     except Exception as eee:
         checkError("Error sending LoRaWAN payload: " + str(eee))
