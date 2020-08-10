@@ -15,6 +15,7 @@ import gc
 import globalVars
 import lorawan
 import _thread
+from lib.beacon import Device
 
 sd = SD()
 gc.enable()
@@ -228,17 +229,25 @@ def createPackageToSend(devs, frames):
             last_lat = ""
             last_lon = ""
             for fr in frames:
-                if fr.addr == dd.addr:
+                # print("FRAMES: " + str(ubinascii.hexlify(fr.addr).decode('utf-8')) + " - DD: " + str(dd.addr) + " - FR: " + str(fr.raw))
+                if str(ubinascii.hexlify(fr.addr).decode('utf-8')) == dd.addr:
                     if len(fr.raw) > 36:
-                        last_frame = str(fr.raw)[10:35]
+                        last_frame = str(fr.raw)[12:36]
             if len(last_frame) > 22:
-                last_lat = last_frame[4:13]
-                last_lon = last_frame[12:21]
-            print("Last frame: " + str(last_frame) + " - Last lat: " + str(last_lat) + " - Last lon: " + str(last_lon))
+                last_lat = last_frame[4:12]
+                last_lon = last_frame[12:20]
+            # print("Last frame: " + str(last_frame) + " - Last lat: " + str(last_lat) + " - Last lon: " + str(last_lon))
             #TODO Convert latitude & longitude to ByteArray
-
+            strToSend.append(int(last_lat[0]+last_lat[1],16)) # End-Device Latitude 
+            strToSend.append(int(last_lat[2]+last_lat[3],16)) # End-Device Latitude 
+            strToSend.append(int(last_lat[4]+last_lat[5],16)) # End-Device Latitude 
+            strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
+            strToSend.append(int(last_lon[0]+last_lon[1],16)) # End-Device Longitude
+            strToSend.append(int(last_lon[2]+last_lon[3],16)) # End-Device Longitude
+            strToSend.append(int(last_lon[4]+last_lon[5],16)) # End-Device Longitude
+            strToSend.append(int(last_lon[6]+last_lon[7],16)) # End-Device Longitude
             globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
-            devicesToSend.append(strToSend)
+            devicesToSend.append(Device(addr=dd.addr,raw=strToSend))
         return devicesToSend
     except Exception as e1:
         checkError("Step 5 - Error creating package to send: " + str(e1)) 
@@ -300,33 +309,44 @@ def createStatisticsReport():
                 globalVars.latitude = struct.pack(">I", 0)
                 globalVars.longitude = struct.pack(">I", 0)
 
-        battery = py.read_battery_voltage()
-        acc_bat = int(round(battery*1000))
-        dev = struct.pack(">I", globalVars.deviceID)
-        bat = struct.pack(">I", acc_bat)
+        # battery = py.read_battery_voltage()
+        # acc_bat = int(round(battery*1000))
+        # dev = struct.pack(">I", globalVars.deviceID)
+        # bat = struct.pack(">I", acc_bat)
+        bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
+        st_bat = struct.pack(">I", bat)
         dt = struct.pack(">I", utime.time())
         whiteLen = struct.pack(">I", len(globalVars.devices_whitelist))
-        sentLen = struct.pack(">I", len(globalVars.device_sent))
-        strToSendStatistics.append(dev[3])
-        strToSendStatistics.append(bat[2])
-        strToSendStatistics.append(bat[3])
-        strToSendStatistics.append(globalVars.latitude[0])
-        strToSendStatistics.append(globalVars.latitude[1])
-        strToSendStatistics.append(globalVars.latitude[2])
-        strToSendStatistics.append(globalVars.latitude[3])
-        strToSendStatistics.append(globalVars.longitude[0])
-        strToSendStatistics.append(globalVars.longitude[1])
-        strToSendStatistics.append(globalVars.longitude[2])
-        strToSendStatistics.append(globalVars.longitude[3])
+        gps_stats = 66
+        st_gps_stats = struct.pack(">I", gps_stats)
+        # sentLen = struct.pack(">I", len(globalVars.device_sent))
+        strToSendStatistics.append(struct.pack(">I", 11)[3]) # Protocol
+        # strToSendStatistics.append(dev[3])
+        # strToSendStatistics.append(bat[2])
+        # strToSendStatistics.append(bat[3])
+        strToSendStatistics.append(globalVars.latitude[0])  # Gateway Latitude  
+        strToSendStatistics.append(globalVars.latitude[1])  # Gateway Latitude 
+        strToSendStatistics.append(globalVars.latitude[2])  # Gateway Latitude 
+        strToSendStatistics.append(globalVars.latitude[3])  # Gateway Latitude 
+        strToSendStatistics.append(globalVars.longitude[0]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.longitude[1]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.longitude[2]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.longitude[3]) # Gateway Longitude
+        strToSendStatistics.append(st_gps_stats[3]) # Gateway GPS Status & Report type HARDCODE
+        strToSendStatistics.append(st_bat[3])
+        #TODO Get Accel X, Y, Z 
+        strToSendStatistics.append(struct.pack(">I", 0)[3]) # Accel X
+        strToSendStatistics.append(struct.pack(">I", 0)[3]) # Accel Y
+        strToSendStatistics.append(struct.pack(">I", 0)[3]) # Accel Z
         strToSendStatistics.append(dt[0])
         strToSendStatistics.append(dt[1])
         strToSendStatistics.append(dt[2])
         strToSendStatistics.append(dt[3])
         strToSendStatistics.append(whiteLen[2])
         strToSendStatistics.append(whiteLen[3])
-        strToSendStatistics.append(sentLen[2])
-        strToSendStatistics.append(sentLen[3])
-        tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(acc_bat),'v')
+        # strToSendStatistics.append(sentLen[2])
+        # strToSendStatistics.append(sentLen[3])
+        tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
         return strToSendStatistics
     except Exception as e:
         checkError("Error creating statistics report: " + str(e)) 
@@ -341,7 +361,7 @@ def sendStatisticsReport():
         tools.debug("Sending statistics report step 2", 'vv')
         if len(statSend) > 0:
             arrToSend = []
-            arrToSend.append(statSend)
+            arrToSend.append(Device(addr="stats", raw=statSend))
             lorawan.sendLoRaWANMessage(arrToSend)
             tools.debug("Sending statistics report step 3", 'vv')
            

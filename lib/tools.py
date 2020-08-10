@@ -46,14 +46,15 @@ def getBatteryPercentage(level):
     try:
         max = 4200
         min = 3400
-        batt = int(round(100 - (((max - level) * 100) / (max - min))))
-        debug("Step 5 - Battery level: " + str(batt),'v')
         if level > max:
-            return 100
+            batt = 100
         elif level < min: 
-            return 0
+            batt = 0
         else:
-            return batt
+            batt = int(round(100 - (((max - level) * 100) / (max - min))))  
+        
+        debug("Step 5 - Battery level: " + str(batt),'v')
+        return batt
 
     except Exception as e:
         print("Step BAT -  Error converting percentage battery level: " + str(e))

@@ -14,6 +14,7 @@ import utime
 import pycom
 import _thread
 import gc
+import tools
 
 if globalVars.REGION == 'EU868':
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=False, tx_power=20, tx_retries=3)
@@ -123,11 +124,9 @@ def initLoRaWANSocket(lora_socket, lora):
     try:
         print("Step 0.2 - LoRa socket setup")
         lora_socket.setsockopt(socket.SOL_LORA, socket.SO_DR, globalVars.LORA_NODE_DR)
-        lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 1)
-        lora.callback(trigger=( LoRa.RX_PACKET_EVENT |
-                                LoRa.TX_PACKET_EVENT |
-                                LoRa.TX_FAILED_EVENT  ), handler=test_callback)
-
+        lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 0)
+        # lora.callback(trigger=( LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT | LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
+        lora_socket.settimeout(5)
         lora_socket.setblocking(True)
         lora_socket.bind(1)
     except Exception as e:
@@ -261,28 +260,72 @@ def join_lora():
 def sendLoRaWANMessage(devices_payload):
     global lora_socket
     try:
-        if lora.has_joined():
-            for dev in devices_payload:
-                sendPayload(lora_socket,dev)
-                # _thread.start_new_thread(sendPayload,(lora_socket,dev,))
-        else:
-            print("Impossible to send because device is not joined")
-            join_lora()
+        ts = int(utime.time())
+        manage_devices_send(devices_payload)
+        if (globalVars.last_lora_sent + int(globalVars.SENT_PERIOD)) < ts: 
+            globalVars.last_lora_sent = ts
             if lora.has_joined():
-                _thread.start_new_thread(sendPayload,(lora_socket,dev,))
-                # sendPayload(lora_socket,payload)
+                for dev in globalVars.lora_sent_devices:
+                    sendPayload(lora_socket,dev.raw)
+                    # _thread.start_new_thread(sendPayload,(lora_socket,dev,))
+                globalVars.lora_sent_devices = []
+            else:
+                print("Impossible to send because device is not joined")
+                join_lora()
+                if lora.has_joined():
+                    for dev in globalVars.lora_sent_devices:
+                        sendPayload(lora_socket,dev.raw)
+        else:
+            tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(globalVars.SENT_PERIOD)) - ts)),"v")
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 
 def sendPayload(sck,payload):
     try:
         print("Sending LoRaWAN payload init: " + str(payload))
-        # sck.setblocking(True)
-        _thread.start_new_thread(sck.send,(bytes(payload),))
-        # sck.send(bytes(payload))
-        # sck.setblocking(False)
-        # _thread.exit()
-        # utime.sleep(2)
+        _thread.start_new_thread(sendAckMessageThread,(sck,payload,))
         print("Sending LoRaWAN message succesfully")
     except Exception as eee:
         checkError("Error sending LoRaWAN payload: " + str(eee))
+
+def sendAckMessageThread(sck, payload):
+    try:
+        print("Threading LoRaWAN : " + str(payload))
+        sck.send(bytes(payload))
+        check_downlink_messages(sck)
+        _thread.exit()
+        print("Threading LoRaWAN message succesfully")
+    except Exception as eee:
+        checkError("Error Threading LoRaWAN payload: " + str(eee))
+
+def check_downlink_messages(sck):
+    try:
+        print("Checking downlink messages")
+        sck.settimeout(5)
+        downlink_message = sck.recv(256) # See if a downlink message arrived
+        print(downlink_message)
+
+        if not downlink_message: # If there was no message, get out now
+            print("No downlink messages")
+            return
+
+        print("Downlink message received!")
+    except Exception as e:
+        print("Error checking downlink messages: " + str(e))
+
+def manage_devices_send(dev_list):
+    try:
+        for dd1 in dev_list:
+            exists = False
+            for dd2 in globalVars.lora_sent_devices:
+                # print("Dev1: " + str(dd1.addr) + " - Dev2: " + str(dd2.addr))
+                if str(dd1.addr) == str(dd2.addr):
+                    # print("Device already exist: " + str(dd1.addr))
+                    exists = True
+            if exists == False:
+                globalVars.lora_sent_devices.append(dd1)
+                # print("Adding device to sent list: " + str(dd1.addr))
+
+        tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"v")
+    except Exception as e:
+        print("Error managing devices to send: " + str(e))
