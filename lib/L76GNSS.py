@@ -317,7 +317,7 @@ class L76GNSS:
                 chrono_running = False
         tc.stop()
         if debug:
-            print("fix in", tc.read(), "seconds")
+            print("fix in", tc.read(), " seconds")
         return self.fix
 
     def gps_message(self, messagetype=None, debug=False):

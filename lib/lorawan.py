@@ -17,9 +17,9 @@ import gc
 import tools
 
 if globalVars.REGION == 'EU868':
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=False, tx_power=20, tx_retries=3)
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=2, power_mode=LoRa.ALWAYS_ON)
 elif globalVars.REGION == 'AS923':
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=False, tx_power=20, tx_retries=3)
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=2)
 
 lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 
@@ -98,8 +98,9 @@ def joinLoRaWANModule(lora):
         if lora.has_joined():
             print('Step 0.1 - Skipping LoRaWAN join, previously joined')
         else:
-            ddd = '0000' + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8'))
-            print("DEV EUI: " + str(ddd))
+            ddd0 = '0000' + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8'))
+            ddd = str(ubinascii.hexlify(lora.mac()).decode('utf-8'))
+            print("DEV EUI: " + str(ddd0) + " - LoRa MAC: " + str(ubinascii.hexlify(lora.mac()).decode('utf-8')))
             dev_eui = binascii.unhexlify(ddd)
             app_key = binascii.unhexlify('a926e5bb85271f2d') # not used leave empty loraserver.io
             nwk_key = binascii.unhexlify('a926e5bb85271f2da0440f2f4200afe3')
@@ -115,6 +116,7 @@ def joinLoRaWANModule(lora):
                 utime.sleep(2.5)
                 print('.', end='')
             print('Joined!!')
+            # lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
             lora.nvram_save()
     except Exception as e:
         checkError("Step 0.1 - Error initializaing LoRaWAN module: " + str(e))
@@ -123,20 +125,19 @@ def joinLoRaWANModule(lora):
 def initLoRaWANSocket(lora_socket, lora):
     try:
         print("Step 0.2 - LoRa socket setup")
+        # lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
         lora_socket.setsockopt(socket.SOL_LORA, socket.SO_DR, globalVars.LORA_NODE_DR)
-        lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 0)
-        # lora.callback(trigger=( LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT | LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
-        lora_socket.settimeout(5)
+        lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 1)
+        lora.callback(trigger=( LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT | LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
         lora_socket.setblocking(True)
-        lora_socket.bind(1)
+
+        # return lora_socket
     except Exception as e:
         checkError("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(e))
         strError.append('2')
 
-def test_callback(lora_d):
-    _thread.start_new_thread(lora_cb,(lora_d,))
-
 def lora_cb(lora):
+    global lora_socket
     try:
         events = lora.events()
         if events & LoRa.RX_PACKET_EVENT:
@@ -173,7 +174,7 @@ def lora_cb(lora):
                         machine.reset()
                     elif payload[0:2] == 'fd': # Delete entire NVS Memory
                         pycom.nvs_erase_all()
-                        _thread.start_new_thread(BeepBuzzer,(2,))
+                        BeepBuzzer(2)
                         machine.reset()
                     elif payload[0:2] == 'cc': # Change configuration parameters
                         UpdateConfigurationParameters(payload[2:])
@@ -203,8 +204,7 @@ def lora_cb(lora):
                         BeepBuzzer(int(payload[2:4],16))
                     else:
                         print("##### Message received other code: " + str(payload[0:2]) + " Lenght: " + str(len(payload)/2))
-                    
-                    
+
         if events & LoRa.TX_PACKET_EVENT:
             print("tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx))
             BeepBuzzer(0.5)
@@ -243,6 +243,10 @@ def UpdateConfigurationParameters(payload):
             print("Step CC - Setting Buzzer Duration Period to " + str(int(payload[2:6],16)))
             pycom.nvs_set('buzzerduration', int(payload[2:6],16))
             globalVars.BUZZER_DURATION = int(payload[2:6],16)
+        if payload[0:2] == '26':
+            print("Step CC - Setting LoRaWAN Sent Period to " + str(int(payload[2:6],16)))
+            pycom.nvs_set('lorasentperiod', int(payload[2:6],16))
+            globalVars.SENT_PERIOD = int(payload[2:6],16)
     except Exception as e:
         print("Step CC -  Error setting configuiration parameters: " + str(e))
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
@@ -253,6 +257,7 @@ def join_lora():
     try:
         joinLoRaWANModule(lora)
         initLoRaWANSocket(lora_socket, lora)
+        # initLoRaWANSocket()
         utime.sleep(1)
     except Exception as ee:
         checkError("Error joining LoRa Network: " + str(ee))
@@ -265,36 +270,59 @@ def sendLoRaWANMessage(devices_payload):
         if (globalVars.last_lora_sent + int(globalVars.SENT_PERIOD)) < ts: 
             globalVars.last_lora_sent = ts
             if lora.has_joined():
-                for dev in globalVars.lora_sent_devices:
-                    sendPayload(lora_socket,dev.raw)
-                    # _thread.start_new_thread(sendPayload,(lora_socket,dev,))
-                globalVars.lora_sent_devices = []
+                # for dev in globalVars.lora_sent_devices:
+                # _thread.start_new_thread(sendAckMessageThread,(lora_socket,))
+                # _thread.start_new_thread(sendAckMessageThread,())
+                sendAckMessageThread(lora_socket)
+                # sendPayload(lora_socket)
+                # _thread.start_new_thread(sendPayload,(lora_socket,dev,))
             else:
                 print("Impossible to send because device is not joined")
                 join_lora()
                 if lora.has_joined():
-                    for dev in globalVars.lora_sent_devices:
-                        sendPayload(lora_socket,dev.raw)
+                    _thread.start_new_thread(sendAckMessageThread,(lora_socket,))
         else:
             tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(globalVars.SENT_PERIOD)) - ts)),"v")
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 
-def sendPayload(sck,payload):
+def sendPayload(sck):
     try:
-        print("Sending LoRaWAN payload init: " + str(payload))
-        _thread.start_new_thread(sendAckMessageThread,(sck,payload,))
-        print("Sending LoRaWAN message succesfully")
+        print("Sending LoRaWAN payload middleware ")
+        _thread.start_new_thread(sendAckMessageThread,(sck,))
     except Exception as eee:
         checkError("Error sending LoRaWAN payload: " + str(eee))
 
-def sendAckMessageThread(sck, payload):
+def sendAckMessageThread(lora_sck):
+    # global lora_socket
     try:
-        print("Threading LoRaWAN : " + str(payload))
-        sck.send(bytes(payload))
-        check_downlink_messages(sck)
-        _thread.exit()
-        print("Threading LoRaWAN message succesfully")
+        print("Threading LoRaWAN messages ")
+        for dev in globalVars.lora_sent_devices:
+            try:
+                # lora_sck.setblocking(False)
+                # _thread.start_new_thread(lora_sck.send,(bytes(dev.raw),))
+                # lora_sck.setblocking(True)
+                lora_sck.send(bytes(dev.raw))
+                # if lora_sck is not None:
+                #     print("##### LoRa Rx Event Callback")
+                #     lora_sck.settimeout(5)
+                #     port = 0
+                #     try:
+                #         frame, port = lora_sck.recvfrom(256) # longuest frame is +-220
+                #         payload = str(ubinascii.hexlify(frame).decode('utf-8'))
+                #         print("##### Receiving message on thread" + payload + " Port: " + str(port))
+                #     except Exception as e2:
+                #         print("Error downlink: " + str(e2))
+                utime.sleep(2)
+                print("Threading LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw))
+            except Exception as e1:
+                print("Error sending message of device: " + str(dev.addr) + " - Error: " + str(e1))
+            utime.sleep(8)
+        
+        globalVars.lora_sent_devices = []
+        # lora_sck.close()
+        # _thread.exit()
+        
     except Exception as eee:
         checkError("Error Threading LoRaWAN payload: " + str(eee))
 

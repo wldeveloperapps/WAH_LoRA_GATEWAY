@@ -7,6 +7,7 @@ import ujson
 import utime
 import pycom 
 import ubinascii
+import tools
 
 sent_lines = []
 
@@ -52,7 +53,7 @@ def LoRaWANSentListNewDevice(device):
 def LoRaWANSentListUpdateDevice(device):
     global sent_lines
     try:
-        # print("Step 5 - Updating register LoRaWANSent list")         
+        tools.debug("Step 5 - Updating register LoRaWANSent list", "vv")
         strToSave = ''
         sent_devices = []
         if len(sent_lines) <= 0:
@@ -64,7 +65,7 @@ def LoRaWANSentListUpdateDevice(device):
             if device.addr in value:
                 strToSave = str(str(device.addr) + "," + str(int(utime.time()))+ "\r\n")
                 sent_lines[idx] = strToSave
-                print("Step 5 - Updating device LoRaWAN Sent list: " + str(strToSave))
+                # print("Step 5 - Updating device LoRaWAN Sent list: " + str(strToSave))
                 
         if strToSave == '':
             print("Step 5 - Device to update not found")

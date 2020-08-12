@@ -114,6 +114,7 @@ def forceConfigParameters():
         pycom.nvs_set('rssithreshold', str(globalVars.RSSI_NEAR_THRESHOLD))
         pycom.nvs_set('buzzerduration', globalVars.BUZZER_DURATION)
         pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
+        pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
         utime.sleep(2)
     except Exception as e:
         checkError("Error forcing configuration parameters: " + str(e))
@@ -161,6 +162,14 @@ def loadConfigParameters():
         except Exception:
             pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
             checkError("STATISTICS_REPORT_INTERVAL error")
+
+        try:
+            globalVars.SENT_PERIOD = pycom.nvs_get('lorasentperiod')
+            # STATISTICS_REPORT_INTERVAL = 60 # Force parameter value
+            tools.debug("Step 0.5 - SENT_PERIOD: " + str(globalVars.SENT_PERIOD),'v')
+        except Exception:
+            pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
+            checkError("SENT_PERIOD error")
         
     except Exception as e1:
         checkError("Step 18 - Error loading config parameters: " + str(e1)) 
@@ -170,7 +179,7 @@ def checkWhiteList(dev):
         if dev not in globalVars.devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
             if str(globalVars.debug_cc).count('v') <= 3:
-                BeepBuzzer(0.1)
+                BeepBuzzer(2)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
 
@@ -203,7 +212,7 @@ def createPackageToSend(devs, frames):
         # tools.debug("Step 4 - Creating messages to send, Devs: " + str(devs),'v')
         devicesToSend = []
         for dd in devs:
-            tools.debug("Creating package to send of device: " + str(dd.addr),'vv')
+            tools.debug("Creating package to send of device: " + str(dd.addr),'v')
             strToSend = []
             gps_stats = 66
             bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
@@ -303,9 +312,9 @@ def createStatisticsReport():
             lat =  struct.pack(">I", acc_tmp)
             lon =  struct.pack(">I", acc_hum)
         elif globalVars.deviceID == 2:
-            tools.debug("Waiting for GPS",'vv')
+            tools.debug("Waiting for GPS ",'vv')
             globalVars.latitude, globalVars.longitude = getGPS()
-            if globalVars.latitude is None or lon is None:
+            if globalVars.latitude is None or globalVars.longitude is None:
                 globalVars.latitude = struct.pack(">I", 0)
                 globalVars.longitude = struct.pack(">I", 0)
 
@@ -377,8 +386,8 @@ def getGPS():
         # coord = l76.coordinates_v2(debug=False)
         if globalVars.gps_enabled == True:
             coord = l76.get_location(debug=False, tout=globalVars.gps_timeout)
-        # print("COORD BACKUP: " + str(coord_backup))    
-        if coord['latitude'] is not None and coord['longitude'] is not None:
+        print("COORD BACKUP: " + str(coord))    
+        if coord['latitude'] is not '' and coord['longitude'] is not '':
         # if coord[0] is not None and coord[1] is not None:
             big_endian_latitude = bytearray(struct.pack("f", coord['latitude']))  
             big_endian_longitude = bytearray(struct.pack("f", coord['longitude'])) 

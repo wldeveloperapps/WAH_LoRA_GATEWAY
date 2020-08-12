@@ -20,13 +20,20 @@ def BuzzerTurnOff():
 
 def BeepBuzzer(duration):
     try:
-        # p_out.hold(False)
-        p_out.value(1)
-        utime.sleep(duration)
-        p_out.value(0)
-        # p_out.hold(True)
+        _thread.start_new_thread(BuzzerThread,(duration,))
+        # BuzzerThread(duration)
     except Exception as e:
         print("Error buzzering 1: " + str(e))
+
+def BuzzerThread(duration):
+    try:
+        if p_out() == False:
+            p_out.value(1)
+            utime.sleep(duration)
+            p_out.value(0)
+        _thread.exit()
+    except Exception as e:
+        print("Error threading buzzering: " + str(e))
 
 def BuzzerListGetDevices():
     try:

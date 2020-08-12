@@ -6,7 +6,7 @@ deviceID = 1 # PySense
 
 # ------ Configuration parameters --------
 MAX_REFRESH_TIME = 60 # Code 20
-BLE_SCAN_PERIOD = 4 # Code 21
+BLE_SCAN_PERIOD = 2 # Code 21
 STANDBY_PERIOD = 2 # Code 22
 RSSI_NEAR_THRESHOLD = 'c4' # Code 23
 # RSSI_NEAR_THRESHOLD = 'c4' # Code 23
@@ -16,7 +16,7 @@ BUZZER_DURATION = 1 # Code 25
 
 # ------ LoRaWAN Configuration -------
 LORA_CHANNEL = 1
-LORA_NODE_DR = 4
+LORA_NODE_DR = 5
 # REGION = 'AS923'
 REGION = 'EU868'
 
@@ -30,19 +30,21 @@ debug_cc = "v"
 # ------ Flags ------------
 stop_sleep_flag = False
 flag_sent = False
-
+flag_blelora = False
 
 # -------- Lists ------------
 devices_whitelist = []
 device_sent = []
+mac_scanned = []
+scanned_frames = []
 
 #-------- LoRa variables -----
-SENT_PERIOD = 300
+SENT_PERIOD = 120
 last_lora_sent = 0
 lora_sent_devices = []
 
 # --------- GPS ----------------
-gps_enabled = False
-gps_timeout = 60
+gps_enabled = True
+gps_timeout = 300
 latitude = [0,0,0,0]
 longitude = [0,0,0,0]
