@@ -22,11 +22,15 @@ gc.enable()
 if globalVars.deviceID == 2:
     from pytrack import Pytrack
     from L76GNSS import L76GNSS
+    from LIS2HH12 import LIS2HH12
     py = Pytrack()
+    acc = LIS2HH12()
 else:
     from pysense import Pysense
     from SI7006A20 import SI7006A20
+    from LIS2HH12 import LIS2HH12
     py = Pysense()
+    acc = LIS2HH12(py)
     si = SI7006A20(py)
 
 os.mount(sd, '/sd')
@@ -220,14 +224,15 @@ def createPackageToSend(devs, frames):
             st_gps_stats = struct.pack(">I", gps_stats)
             strToSend.append(struct.pack(">I", 10)[3]) # Protocol
             # strToSend.append(struct.pack(">I", 0)) # Command ID
-            strToSend.append(globalVars.latitude[0]) # Gateway Latitude 
-            strToSend.append(globalVars.latitude[1]) # Gateway Latitude 
-            strToSend.append(globalVars.latitude[2]) # Gateway Latitude 
-            strToSend.append(globalVars.latitude[3]) # Gateway Latitude 
-            strToSend.append(globalVars.longitude[0]) # Gateway Longitude
-            strToSend.append(globalVars.longitude[1]) # Gateway Longitude
-            strToSend.append(globalVars.longitude[2]) # Gateway Longitude
             strToSend.append(globalVars.longitude[3]) # Gateway Longitude
+            strToSend.append(globalVars.longitude[2]) # Gateway Longitude
+            strToSend.append(globalVars.longitude[1]) # Gateway Longitude
+            strToSend.append(globalVars.longitude[0]) # Gateway Longitude
+            strToSend.append(globalVars.latitude[3]) # Gateway Latitude 
+            strToSend.append(globalVars.latitude[2]) # Gateway Latitude 
+            strToSend.append(globalVars.latitude[1]) # Gateway Latitude 
+            strToSend.append(globalVars.latitude[0]) # Gateway Latitude 
+
             strToSend.append(st_gps_stats[3]) # Gateway GPS Status & Report type HARDCODE
             strToSend.append(st_bat[3])
             # tools.debug("Getting MAC bytes of : " + str(dd.addr),'vv')
@@ -247,14 +252,14 @@ def createPackageToSend(devs, frames):
                 last_lon = last_frame[12:20]
             # print("Last frame: " + str(last_frame) + " - Last lat: " + str(last_lat) + " - Last lon: " + str(last_lon))
             #TODO Convert latitude & longitude to ByteArray
-            strToSend.append(int(last_lat[0]+last_lat[1],16)) # End-Device Latitude 
-            strToSend.append(int(last_lat[2]+last_lat[3],16)) # End-Device Latitude 
-            strToSend.append(int(last_lat[4]+last_lat[5],16)) # End-Device Latitude 
-            strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
             strToSend.append(int(last_lon[0]+last_lon[1],16)) # End-Device Longitude
             strToSend.append(int(last_lon[2]+last_lon[3],16)) # End-Device Longitude
             strToSend.append(int(last_lon[4]+last_lon[5],16)) # End-Device Longitude
             strToSend.append(int(last_lon[6]+last_lon[7],16)) # End-Device Longitude
+            strToSend.append(int(last_lat[0]+last_lat[1],16)) # End-Device Latitude 
+            strToSend.append(int(last_lat[2]+last_lat[3],16)) # End-Device Latitude 
+            strToSend.append(int(last_lat[4]+last_lat[5],16)) # End-Device Latitude 
+            strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
             globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
             devicesToSend.append(Device(addr=dd.addr,raw=strToSend))
         return devicesToSend
@@ -326,27 +331,38 @@ def createStatisticsReport():
         st_bat = struct.pack(">I", bat)
         dt = struct.pack(">I", utime.time())
         whiteLen = struct.pack(">I", len(globalVars.devices_whitelist))
-        gps_stats = 66
+        gps_stats = 67
         st_gps_stats = struct.pack(">I", gps_stats)
         # sentLen = struct.pack(">I", len(globalVars.device_sent))
         strToSendStatistics.append(struct.pack(">I", 11)[3]) # Protocol
         # strToSendStatistics.append(dev[3])
         # strToSendStatistics.append(bat[2])
         # strToSendStatistics.append(bat[3])
-        strToSendStatistics.append(globalVars.latitude[0])  # Gateway Latitude  
-        strToSendStatistics.append(globalVars.latitude[1])  # Gateway Latitude 
-        strToSendStatistics.append(globalVars.latitude[2])  # Gateway Latitude 
-        strToSendStatistics.append(globalVars.latitude[3])  # Gateway Latitude 
-        strToSendStatistics.append(globalVars.longitude[0]) # Gateway Longitude
-        strToSendStatistics.append(globalVars.longitude[1]) # Gateway Longitude
-        strToSendStatistics.append(globalVars.longitude[2]) # Gateway Longitude
         strToSendStatistics.append(globalVars.longitude[3]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.longitude[2]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.longitude[1]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.longitude[0]) # Gateway Longitude
+        strToSendStatistics.append(globalVars.latitude[3])  # Gateway Latitude  
+        strToSendStatistics.append(globalVars.latitude[2])  # Gateway Latitude 
+        strToSendStatistics.append(globalVars.latitude[1])  # Gateway Latitude 
+        strToSendStatistics.append(globalVars.latitude[0])  # Gateway Latitude 
         strToSendStatistics.append(st_gps_stats[3]) # Gateway GPS Status & Report type HARDCODE
         strToSendStatistics.append(st_bat[3])
         #TODO Get Accel X, Y, Z 
-        strToSendStatistics.append(struct.pack(">I", 0)[3]) # Accel X
-        strToSendStatistics.append(struct.pack(">I", 0)[3]) # Accel Y
-        strToSendStatistics.append(struct.pack(">I", 0)[3]) # Accel Z
+        accel = acc.acceleration()
+        accel_x = round(accel[0]*100)
+        accel_y = round(accel[1]*100)
+        accel_z = round(accel[2]*100)
+        tools.debug("Acceleration X: " + str(accel_x) + " - Y: " + str(accel_y) + " - Z: " + str(accel_z),"v")
+        if accel_x > 255: 
+            accel_x = 255
+        if accel_y > 255: 
+            accel_y = 255
+        if accel_z > 255: 
+            accel_z = 255
+        strToSendStatistics.append(struct.pack(">I", accel_x)[3]) # Accel X
+        strToSendStatistics.append(struct.pack(">I", accel_y)[3]) # Accel Y
+        strToSendStatistics.append(struct.pack(">I", accel_z)[3]) # Accel Z
         strToSendStatistics.append(dt[0])
         strToSendStatistics.append(dt[1])
         strToSendStatistics.append(dt[2])
@@ -389,15 +405,15 @@ def getGPS():
         print("COORD BACKUP: " + str(coord))    
         if coord['latitude'] is not '' and coord['longitude'] is not '':
         # if coord[0] is not None and coord[1] is not None:
-            big_endian_latitude = bytearray(struct.pack("f", coord['latitude']))  
-            big_endian_longitude = bytearray(struct.pack("f", coord['longitude'])) 
+            big_endian_latitude = bytearray(struct.pack(">I", int(coord['latitude']*1000000)))  
+            big_endian_longitude = bytearray(struct.pack(">I", int(coord['longitude']*1000000))) 
             # big_endian_latitude = bytearray(struct.pack("f", coord[0]))  
             # big_endian_longitude = bytearray(struct.pack("f", coord[1]))  
             # print([ "0x%02x" % b for b in big_endian_latitude ])
             dt = l76.getUTCDateTimeTuple(debug=True)
             if dt is not None:
                 rtc.init(dt)
-            tools.debug("Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
+            tools.debug("BigEndianLatitude: " + str(big_endian_latitude) + " - BigEndianLongitude: " + str(big_endian_longitude) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
             # tools.debug("Latitude: " + str(coord[0]) + " - Longitude: " + str(coord[1]) + " - Timestamp: " + str(dt),'v')
             # l76.enterStandBy(debug=False)
             return big_endian_latitude, big_endian_longitude
