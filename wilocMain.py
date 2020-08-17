@@ -40,6 +40,11 @@ wdt = WDT(timeout=300000)
 strError = []
 # ---------------
 
+# ---------- TODO -------------
+#  Sleep schedule by RTC syncronization by GPS
+#  Blacklist development
+#  Modify buzzer intensity with an ADC output
+
 
 def rssiFilterDevices(RSSI_NEAR_THRESHOLD, macs, frames):
     try:
@@ -183,7 +188,7 @@ def checkWhiteList(dev):
         if dev not in globalVars.devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
             if str(globalVars.debug_cc).count('v') <= 3:
-                BeepBuzzer(2)
+                BeepBuzzer(0.1)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
 

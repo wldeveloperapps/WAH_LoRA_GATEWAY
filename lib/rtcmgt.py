@@ -3,9 +3,11 @@ import pycom
 import utime
 import machine
 
+rtc = RTC()
+
 def initRTC():
+    global rtc
     try:
-        rtc = RTC()
         dt = pycom.nvs_get('rtc')
         print("Step RTC - Initializing RTC to " + str(int(dt)))
         rtc.init(utime.gmtime(int(dt)))
@@ -13,8 +15,8 @@ def initRTC():
         print("Step RTC - Error initializing parametetr: " + str(e1)) 
 
 def forceRTC(dt):
+    global rtc
     try:
-        rtc = RTC()
         # dt = pycom.nvs_get('rtc')
         print("Step RTC - Initializing RTC to " + str(int(dt)))
         rtc.init(utime.gmtime(int(dt)))
@@ -28,9 +30,11 @@ def autoRTCInitialize():
     else:
         print("RTC Reset cause: " + str(reset_cause))
 
-def checkCalendar(req_day, req_hour, req_minute):
+def getRTC():
+    global rtc
     try:
-        print("")
+        print("Getting RTC: " + str(rtc))
+        return rtc
     except Exception as e:
         print("Error")
 

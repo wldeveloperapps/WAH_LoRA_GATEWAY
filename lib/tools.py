@@ -7,6 +7,7 @@ import utime
 import ubinascii
 import machine
 import globalVars
+import gc
 # ---------------
 
 try:
@@ -63,8 +64,10 @@ def getBatteryPercentage(level):
 def sleepWiloc(period):
     try:
         debug("In sleep method: " + str(globalVars.stop_sleep_flag) + " - LoRaSending: " + str(globalVars.flag_sent),'vv')
+        gc.collect()
         if globalVars.stop_sleep_flag == False and globalVars.flag_sent == False:
             utime.sleep(period)
+        
     except Exception as e:
         print("Step BAT -  Error getting battery level: " + str(e))
 

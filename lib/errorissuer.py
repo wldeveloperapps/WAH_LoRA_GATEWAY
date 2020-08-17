@@ -27,6 +27,8 @@ def checkError(message):
     try:
         print("Error control: " +str(message))
         if 'I2C bus error' in str(message):
+            machine.reset()
+        if 'memory' in str(message):
             machine.reset()     
     except Exception as e:
         print("Error managing error issuer")
