@@ -253,8 +253,8 @@ def createPackageToSend(devs, frames):
                     if len(fr.raw) > 36:
                         last_frame = str(fr.raw)[12:36]
             if len(last_frame) > 22:
-                last_lat = last_frame[4:12]
-                last_lon = last_frame[12:20]
+                last_lat = last_frame[12:20]
+                last_lon = last_frame[4:12]
             # print("Last frame: " + str(last_frame) + " - Last lat: " + str(last_lat) + " - Last lon: " + str(last_lon))
             #TODO Convert latitude & longitude to ByteArray
             strToSend.append(int(last_lon[0]+last_lon[1],16)) # End-Device Longitude
@@ -325,8 +325,30 @@ def createStatisticsReport():
             tools.debug("Waiting for GPS ",'vv')
             globalVars.latitude, globalVars.longitude = getGPS()
             if globalVars.latitude is None or globalVars.longitude is None:
-                globalVars.latitude = struct.pack(">I", 0)
-                globalVars.longitude = struct.pack(">I", 0)
+                try:
+                    dummy_lat = pycom.nvs_get('last_lat')
+                    globalVars.latitude = tuple(map(int, dummy_lat.split(','))) 
+                    # globalVars.latitude = pycom.nvs_get('last_lat')
+                    # globalVars.latitude = struct.pack(">I", 0)
+                    tools.debug("Getting latitude from FLASH: " + str(globalVars.latitude),'v')
+                except Exception:
+                    checkError("Error getting Latitude") 
+                    globalVars.latitude = struct.pack(">I", 0)
+                
+                try:
+                    dummy_lon = pycom.nvs_get('last_lon')
+                    globalVars.longitude = tuple(map(int, dummy_lon.split(','))) 
+                    # globalVars.longitude = pycom.nvs_get('last_lon')
+                    # globalVars.longitude = struct.pack(">I", 0)
+                    tools.debug("Getting longitude from FLASH: " + str(globalVars.longitude),'v')
+                except Exception:
+                    checkError("Error getting Longitude") 
+                    globalVars.longitude = struct.pack(">I", 0)
+            else:
+                lat_st = str(globalVars.latitude[0]) + "," + str(globalVars.latitude[1]) + "," + str(globalVars.latitude[2]) + "," + str(globalVars.latitude[3])
+                lon_st = str(globalVars.longitude[0]) + "," + str(globalVars.longitude[1]) + "," + str(globalVars.longitude[2]) + "," + str(globalVars.longitude[3])
+                pycom.nvs_set('last_lat', lat_st)
+                pycom.nvs_set('last_lon', lon_st)
 
         # battery = py.read_battery_voltage()
         # acc_bat = int(round(battery*1000))
@@ -418,7 +440,7 @@ def getGPS():
             dt = l76.getUTCDateTimeTuple(debug=True)
             if dt is not None:
                 rtc.init(dt)
-            tools.debug("BigEndianLatitude: " + str(big_endian_latitude) + " - BigEndianLongitude: " + str(big_endian_longitude) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
+            tools.debug("HDOP: " + str(coord['HDOP']) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
             # tools.debug("Latitude: " + str(coord[0]) + " - Longitude: " + str(coord[1]) + " - Timestamp: " + str(dt),'v')
             # l76.enterStandBy(debug=False)
             return big_endian_latitude, big_endian_longitude

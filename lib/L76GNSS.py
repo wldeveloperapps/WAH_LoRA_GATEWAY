@@ -213,6 +213,7 @@ class L76GNSS:
         """read and decode a nmea sentence according to a messagetype"""
         # Sometimes messagetupe is a string.  Sometimes a tuple.
         # Make it always a tuple
+        
         if not isinstance(messagetype, tuple):
                 messagetype = (messagetype,)
         if debug:
@@ -293,25 +294,35 @@ class L76GNSS:
         tc.reset()
         tc.start()
         chrono_running = True
-
+        hdop = 0
+        pdop = 0
+        pm = fs = False
+        nsv = ""
         while chrono_running and not self.fix:
             nmea_message = self._read_message(('RMC', 'VTG', 'GLL', 'GGA', 'GSA'), debug=debug, timeout=timeout)
-            print("Waiting for a fix position, timeout: " + str(tc.read()))
+            # print("Waiting for a fix position, timeout: " + str(tc.read()))
             if nmea_message is not None:
-                pm = fs = False
                 try:
                     if nmea_message['NMEA'][2:] in ('RMC', 'GLL'):  #'VTG',
                         pm = nmea_message['PositioningMode'] != 'N'
-                    if nmea_message['NMEA'][2:] in ('GGA', ):  #'GSA'
+                    if nmea_message['NMEA'][2:] in ('GGA'):  #'GSA'
                         fs = int(nmea_message['FixStatus']) >= 1
-                    if pm or fs:
+                        hdop = float(nmea_message['HDOP'])
+                        nsv = str(nmea_message['NumberOfSV'])
+                    if nmea_message['NMEA'][2:] in ('GSA'): 
+                        hdop = float(nmea_message['HDOP'])
+                        pdop = str(nmea_message['PDOP'])
+                    # if pm and fs and hdop < 3 and hdop > 0:
+                    if hdop < 2.0 and hdop > 0.5:
                         tc.stop()
                         self.fix = True
                         self.timeLastFix = int(time.ticks_ms() / 1000) - self.timeLastFix
                         self.ttf = round(tc.read())
                         self.Latitude = nmea_message['Latitude']
                         self.Longitude = nmea_message['Longitude']
-                except:
+                    else:
+                        print("Waiting for a fix position, timeout: " + str(tc.read()) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv))
+                except Exception as ee:
                     pass
             if tc.read() > timeout:
                 chrono_running = False
@@ -402,13 +413,14 @@ class L76GNSS:
             COG = msg['COG-T']
         return dict(speed=speed, COG=COG)
 
-    def get_location(self, MSL=False,debug=False, tout = 30):
+    def get_location(self, MSL=False,debug=False, tout = 300):
         """location, altitude and HDOP"""
         msg, latitude, longitude, HDOP, altitude = None, None, None, None, None
         if not self.fix:
             self.get_fix(debug=debug, timeout=tout)
         msg = self._read_message(messagetype='GGA')
         if msg is not None:
+            print("GPS Message: " + str(msg))
             latitude = msg['Latitude']
             longitude = msg['Longitude']
             HDOP = msg['HDOP']

@@ -17,9 +17,9 @@ import gc
 import tools
 
 if globalVars.REGION == 'EU868':
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=2, power_mode=LoRa.ALWAYS_ON)
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
 elif globalVars.REGION == 'AS923':
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=2)
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
 
 lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 
@@ -207,7 +207,7 @@ def lora_cb(lora):
 
         if events & LoRa.TX_PACKET_EVENT:
             print("tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx))
-            BeepBuzzer(0.5)
+            # BeepBuzzer(0.5)
         if events & LoRa.TX_FAILED_EVENT:
             print("#### Error TxEvent ####")
     except Exception as e1:
