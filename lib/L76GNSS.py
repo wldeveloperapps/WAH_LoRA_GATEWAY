@@ -213,7 +213,7 @@ class L76GNSS:
         """read and decode a nmea sentence according to a messagetype"""
         # Sometimes messagetupe is a string.  Sometimes a tuple.
         # Make it always a tuple
-        
+        debug = False
         if not isinstance(messagetype, tuple):
                 messagetype = (messagetype,)
         if debug:

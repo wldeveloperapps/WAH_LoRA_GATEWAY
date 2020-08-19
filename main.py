@@ -69,7 +69,7 @@ try:
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
     sched = Scheduler()
     sched.start()
-    # wilocMain.forceConfigParameters()
+    wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
     lorawan.join_lora()

@@ -13,11 +13,11 @@ class Scheduler:
         # print("Start Downlink:",self.startDownlink)
         # print("End Downlink:",self.endDownlink)
         dt = utime.gmtime()
-        if dt[3] == 00 & dt[4] == 00 & dt[5] > 00 & dt[5] < 10:
+        print("Scheduler: " + str(dt[3]) + ":" + str(dt[4]) + ":" + str(dt[5]))
+        if dt[3] == 00 and dt[4] == 00 and dt[5] > 00 and dt[5] < 5:
             print("Reseting module because of daily schedule")
-            machine.reset()
-        else:
-            print("Hour: " + str(dt[3]) + " Min: " + str(dt[4]) + " Sec: " + str(dt[5]))
+            utime.sleep(2)
+            machine.reset()           
 
     def start(self):
         try:
