@@ -1,5 +1,6 @@
 import utime
 import machine
+import rtcmgt
 
 class Scheduler:
     
@@ -14,8 +15,9 @@ class Scheduler:
         # print("End Downlink:",self.endDownlink)
         dt = utime.gmtime()
         print("Scheduler: " + str(dt[3]) + ":" + str(dt[4]) + ":" + str(dt[5]))
-        if dt[3] == 00 and dt[4] == 00 and dt[5] > 00 and dt[5] < 5:
+        if dt[3] == int(self.dailyreset.split(":")[0]) and dt[4] == int(self.dailyreset.split(":")[1]) and dt[5] > int(self.dailyreset.split(":")[2]) and dt[5] < (int(self.dailyreset.split(":")[2])+15):
             print("Reseting module because of daily schedule")
+            rtcmgt.updateRTC()
             utime.sleep(2)
             machine.reset()           
 
@@ -24,11 +26,6 @@ class Scheduler:
             print("Daily Reset:",self.dailyreset)
             print("Start Downlink:",self.startDownlink)
             print("End Downlink:",self.endDownlink)
-            dt = utime.gmtime()
-            print("Starting scheduler, Time: " + str(dt))
-            if dt[3] == 00:
-                print("Time for reset")
-            else:
-                print("Waiting for the reset: " + str(dt[3]))
+            print("Starting scheduler, Time: " + str(utime.gmtime()))
         except Exception as e:
             print("Error on scheduler: " + str(e))

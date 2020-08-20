@@ -21,6 +21,7 @@ from machine import Timer
 import time
 import gc
 import binascii
+# import math
 
 # TODO: annotate sattelites in view
 
@@ -297,10 +298,10 @@ class L76GNSS:
         hdop = 0
         pdop = 0
         pm = fs = False
-        nsv = ""
+        nsv = 0
+        dd = 0
         while chrono_running and not self.fix:
             nmea_message = self._read_message(('RMC', 'VTG', 'GLL', 'GGA', 'GSA'), debug=debug, timeout=timeout)
-            # print("Waiting for a fix position, timeout: " + str(tc.read()))
             if nmea_message is not None:
                 try:
                     if nmea_message['NMEA'][2:] in ('RMC', 'GLL'):  #'VTG',
@@ -308,20 +309,21 @@ class L76GNSS:
                     if nmea_message['NMEA'][2:] in ('GGA'):  #'GSA'
                         fs = int(nmea_message['FixStatus']) >= 1
                         hdop = float(nmea_message['HDOP'])
-                        nsv = str(nmea_message['NumberOfSV'])
+                        nsv = int(nmea_message['NumberOfSV'])
                     if nmea_message['NMEA'][2:] in ('GSA'): 
                         hdop = float(nmea_message['HDOP'])
-                        pdop = str(nmea_message['PDOP'])
-                    # if pm and fs and hdop < 3 and hdop > 0:
-                    if hdop < 2.0 and hdop > 0.5:
+                        pdop = float(nmea_message['PDOP'])
+                    # dd = haversine(float(nmea_message['Latitude']),float(nmea_message['Longitude']), 40.34189, -3.820436)
+                    print("Fix position, timeout: " + str(tc.read()) + " - Position: " + str(nmea_message['Latitude']) +" " + str(str(nmea_message['Longitude'])) + " - Distance: " + str(dd) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv))
+                    if hdop <= 1.2 and hdop > 0 and pdop <= 1.5 and pdop > 0 and nsv >= 7:
                         tc.stop()
                         self.fix = True
                         self.timeLastFix = int(time.ticks_ms() / 1000) - self.timeLastFix
                         self.ttf = round(tc.read())
                         self.Latitude = nmea_message['Latitude']
                         self.Longitude = nmea_message['Longitude']
-                    else:
-                        print("Waiting for a fix position, timeout: " + str(tc.read()) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv))
+                    # else:
+                        # print("Waiting for a fix position, timeout: " + str(tc.read()) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv))
                 except Exception as ee:
                     pass
             if tc.read() > timeout:
@@ -330,6 +332,26 @@ class L76GNSS:
         if debug:
             print("fix in", tc.read(), " seconds")
         return self.fix
+
+    # def haversine(lat1, lon1, lat2, lon2):
+    #     try:
+    #         R = 6372800  # Earth radius in meters
+    #         # lat1, lon1 = coord1
+    #         # lat2, lon2 = coord2
+            
+    #         phi1, phi2 = math.radians(lat1), math.radians(lat2) 
+    #         dphi       = math.radians(lat2 - lat1)
+    #         dlambda    = math.radians(lon2 - lon1)
+            
+    #         a = math.sin(dphi/2)**2 + \
+    #             math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+            
+    #         dist = 2*R*math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    #         print("The distance is %s meters" % str(dist))
+            
+    #         return dist
+    #     except Exception as e:
+    #         print("Error haversine method to calculate distance")
 
     def gps_message(self, messagetype=None, debug=False):
         """returns the last message from the L76 gps"""

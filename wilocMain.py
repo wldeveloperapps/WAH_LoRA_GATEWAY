@@ -34,7 +34,7 @@ else:
     si = SI7006A20(py)
 
 os.mount(sd, '/sd')
-wdt = WDT(timeout=300000)
+wdt = WDT(timeout=600000)
 # ---------------
 
 strError = []
@@ -195,7 +195,7 @@ def checkWhiteList(dev):
     except Exception as e:
         checkError("Error checking whitelist level, " + str(e))
 
-def checkTimeToSend(devs, MAX_REFRESH_TIME):
+def checkTimeToAddDevices(devs, MAX_REFRESH_TIME):
     try:
         ret_devices = []
         ts = int(utime.time())
@@ -311,6 +311,7 @@ def checkTimeForStatistics(INTERVAL):
 def createStatisticsReport():
     try:
         strToSendStatistics = []
+        statsToSend = []
         if globalVars.deviceID == 1:
             temperature = 0
             altitude = 0
@@ -399,7 +400,8 @@ def createStatisticsReport():
         # strToSendStatistics.append(sentLen[2])
         # strToSendStatistics.append(sentLen[3])
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
-        return strToSendStatistics
+        statsToSend.append(Device(addr="stats",raw=strToSendStatistics))
+        return statsToSend
     except Exception as e:
         checkError("Error creating statistics report: " + str(e)) 
         strError.append('19')
@@ -408,8 +410,8 @@ def createStatisticsReport():
 def sendStatisticsReport():
     try:
         tools.debug("Sending statistics report step 1", 'vv')
-        statSend = createStatisticsReport()
         
+        statSend = createStatisticsReport()
         tools.debug("Sending statistics report step 2", 'vv')
         if len(statSend) > 0:
             arrToSend = []
@@ -422,30 +424,56 @@ def sendStatisticsReport():
 
 def getGPS():
     try:
-        
         l76 = L76GNSS(py)
         rtc = machine.RTC()
         coord = dict(latitude=None, longitude=None)
-        # coord = l76.coordinates_v2(debug=False)
         if globalVars.gps_enabled == True:
             coord = l76.get_location(debug=False, tout=globalVars.gps_timeout)
-        print("COORD BACKUP: " + str(coord))    
         if coord['latitude'] is not '' and coord['longitude'] is not '':
-        # if coord[0] is not None and coord[1] is not None:
+            tools.haversine(coord['latitude'], coord['longitude'], globalVars.last_lat_tmp, globalVars.last_lon_tmp)
             big_endian_latitude = bytearray(struct.pack(">I", int(coord['latitude']*1000000)))  
             big_endian_longitude = bytearray(struct.pack(">I", int(coord['longitude']*1000000))) 
-            # big_endian_latitude = bytearray(struct.pack("f", coord[0]))  
-            # big_endian_longitude = bytearray(struct.pack("f", coord[1]))  
-            # print([ "0x%02x" % b for b in big_endian_latitude ])
             dt = l76.getUTCDateTimeTuple(debug=True)
             if dt is not None:
                 rtc.init(dt)
             tools.debug("HDOP: " + str(coord['HDOP']) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
-            # tools.debug("Latitude: " + str(coord[0]) + " - Longitude: " + str(coord[1]) + " - Timestamp: " + str(dt),'v')
-            # l76.enterStandBy(debug=False)
+            globalVars.last_lat_tmp =  coord['latitude']
+            globalVars.last_lon_tmp =  coord['longitude']
             return big_endian_latitude, big_endian_longitude
         else:
             return None,None
     except Exception as e:
         checkError("Error getting GPS: " + str(e))
         return None,None
+
+def checkTimeToSend(interval):
+    try:
+        ts = int(utime.time())
+        if (globalVars.last_lora_sent + int(interval)) < ts: 
+            globalVars.last_lora_sent = ts
+            return True
+        else:
+            tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)),"v")
+            return False
+    except Exception as e:
+        checkError("Error checking time to send by LoRa: " + str(e))
+        return False
+
+def manage_devices_send(dev_list):
+    try:
+        for dd1 in dev_list:
+            exists = False
+            for dd2 in globalVars.lora_sent_devices:
+                # print("Dev1: " + str(dd1.addr) + " - Dev2: " + str(dd2.addr))
+                if str(dd1.addr) == str(dd2.addr):
+                    # print("Device already exist: " + str(dd1.addr))
+                    exists = True
+            if exists == False:
+                globalVars.lora_sent_devices.append(dd1)
+                # print("Adding device to sent list: " + str(dd1.addr))
+
+        tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"v")
+    except Exception as e:
+        print("Error managing devices to send: " + str(e))
+
+        

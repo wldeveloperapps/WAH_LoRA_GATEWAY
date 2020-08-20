@@ -257,7 +257,6 @@ def join_lora():
     try:
         joinLoRaWANModule(lora)
         initLoRaWANSocket(lora_socket, lora)
-        # initLoRaWANSocket()
         utime.sleep(1)
     except Exception as ee:
         checkError("Error joining LoRa Network: " + str(ee))
@@ -265,24 +264,15 @@ def join_lora():
 def sendLoRaWANMessage(devices_payload):
     global lora_socket
     try:
-        ts = int(utime.time())
-        manage_devices_send(devices_payload)
-        if (globalVars.last_lora_sent + int(globalVars.SENT_PERIOD)) < ts: 
-            globalVars.last_lora_sent = ts
+        if len(devices_payload) > 0: 
             if lora.has_joined():
-                # for dev in globalVars.lora_sent_devices:
-                # _thread.start_new_thread(sendAckMessageThread,(lora_socket,))
-                # _thread.start_new_thread(sendAckMessageThread,())
                 sendAckMessageThread(lora_socket)
-                # sendPayload(lora_socket)
-                # _thread.start_new_thread(sendPayload,(lora_socket,dev,))
             else:
                 print("Impossible to send because device is not joined")
                 join_lora()
                 if lora.has_joined():
                     _thread.start_new_thread(sendAckMessageThread,(lora_socket,))
-        else:
-            tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(globalVars.SENT_PERIOD)) - ts)),"v")
+
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 
@@ -341,19 +331,3 @@ def check_downlink_messages(sck):
     except Exception as e:
         print("Error checking downlink messages: " + str(e))
 
-def manage_devices_send(dev_list):
-    try:
-        for dd1 in dev_list:
-            exists = False
-            for dd2 in globalVars.lora_sent_devices:
-                # print("Dev1: " + str(dd1.addr) + " - Dev2: " + str(dd2.addr))
-                if str(dd1.addr) == str(dd2.addr):
-                    # print("Device already exist: " + str(dd1.addr))
-                    exists = True
-            if exists == False:
-                globalVars.lora_sent_devices.append(dd1)
-                # print("Adding device to sent list: " + str(dd1.addr))
-
-        tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"v")
-    except Exception as e:
-        print("Error managing devices to send: " + str(e))

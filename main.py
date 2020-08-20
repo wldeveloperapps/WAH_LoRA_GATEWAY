@@ -77,28 +77,29 @@ try:
     while True:
         try:
             rtcmgt.updateRTC()
+            tools.sleepWiloc(int(globalVars.BLE_SCAN_PERIOD))
             if len(globalVars.scanned_frames) > 0:
                 dummy_list = wilocMain.rssiFilterDevices(globalVars.RSSI_NEAR_THRESHOLD,globalVars.mac_scanned, globalVars.scanned_frames)
+                # print("Step 1")
                 if len(dummy_list) > 0:
-                    sentDevices = wilocMain.checkTimeToSend(dummy_list, globalVars.MAX_REFRESH_TIME)
+                    # print("Step 1.1")
+                    sentDevices = wilocMain.checkTimeToAddDevices(dummy_list, globalVars.MAX_REFRESH_TIME)
+                    # print("Step 1.2")
                     if len(sentDevices) > 0:
                         pkgSend = wilocMain.createPackageToSend(sentDevices, globalVars.scanned_frames)
                         if len(pkgSend) > 0:
-                            lorawan.sendLoRaWANMessage(pkgSend)
-                        else:
-                            tools.debug("Step 2 - No package created",'vvv')
-                    else:
-                        tools.debug("Step 2 - No devices to send",'vvv')
-                else:
-                    tools.debug("Step 2 - There are no devices with the right RSSI Threshold",'vvv')
-            else:
-                tools.debug("Step 2 - There are not devices scanned",'vvv')
-            
+                            wilocMain.manage_devices_send(pkgSend)
+            # print("Step 2")
             if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
                 pycom.nvs_set('laststatsreport', str(int(utime.time())))
-                wilocMain.sendStatisticsReport()
-                # _thread.start_new_thread(wilocMain.sendStatisticsReport,())
+                statSend = wilocMain.createStatisticsReport()
+                wilocMain.manage_devices_send(statSend)
             
+            # print("Step 3")
+            if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
+                if len(globalVars.lora_sent_devices) > 0:
+                    lorawan.sendLoRaWANMessage(globalVars.lora_sent_devices)
+
             sched.checkNextReset()
             sleepProcess()
         except Exception as eee:

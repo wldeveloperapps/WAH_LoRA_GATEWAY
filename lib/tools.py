@@ -1,5 +1,7 @@
 from machine import Pin, SD
 from lib.beacon import DeviceBuzzer, DeviceReport
+# from math import radians, sin, cos, acos
+import math
 import time
 import os
 import uos
@@ -88,6 +90,41 @@ def debug(payload, type):
                 
     except Exception as e:
         print("Error printing debug: " + str(e))
+
+def calculateDistance(latitude_init, longitude_init, latitude_end, longitude_end):
+    try:
+        print("Input coordinates of two points:")
+        slat = radians(float(latitude_init))
+        slon = radians(float(longitude_init))
+        elat = radians(float(latitude_end))
+        elon = radians(float(longitude_end))
+
+        dist = 6371.01 * acos(sin(slat)*sin(elat) + cos(slat)*cos(elat)*cos(slon - elon))
+        print("The distance is %.2f meters." % dist)
+        return dist
+    except Exception as e:
+        print("Error calculating distance: " + str(e))
+        return 0
+
+def haversine(lat1, lon1, lat2, lon2):
+    try:
+        R = 6372800  # Earth radius in meters
+        # lat1, lon1 = coord1
+        # lat2, lon2 = coord2
+        
+        phi1, phi2 = math.radians(lat1), math.radians(lat2) 
+        dphi       = math.radians(lat2 - lat1)
+        dlambda    = math.radians(lon2 - lon1)
+        
+        a = math.sin(dphi/2)**2 + \
+            math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+        
+        dist = 2*R*math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        print("The distance is %s meters" % str(dist))
+        
+        return dist
+    except Exception as e:
+        print("Error haversine method to calculate distance")
 
 def template(dev):
     try:

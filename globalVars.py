@@ -10,7 +10,7 @@ BLE_SCAN_PERIOD = 4 # Code 21
 STANDBY_PERIOD = 2 # Code 22
 RSSI_NEAR_THRESHOLD = 'c4' # Code 23
 # RSSI_NEAR_THRESHOLD = 'c4' # Code 23
-STATISTICS_REPORT_INTERVAL = 3600 # Code 24
+STATISTICS_REPORT_INTERVAL = 1800 # Code 24
 BUZZER_DURATION = 1 # Code 25
 SENT_PERIOD = 600
 
@@ -45,6 +45,9 @@ lora_sent_devices = []
 
 # --------- GPS ----------------
 gps_enabled = True
-gps_timeout = 300
+gps_timeout = 600
+max_distance_allow = 50
 latitude = [0,0,0,0]
 longitude = [0,0,0,0]
+last_lat_tmp=0
+last_lon_tmp=0
