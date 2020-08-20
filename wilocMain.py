@@ -476,4 +476,12 @@ def manage_devices_send(dev_list):
     except Exception as e:
         print("Error managing devices to send: " + str(e))
 
-        
+def sleepProcess():
+    try:
+        tools.debug("Step 8 - Going to sleep",'v')
+        feedWatchdog()
+        globalVars.mac_scanned[:]=[]
+        globalVars.scanned_frames[:]=[]
+        tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
+    except Exception as e:
+        checkError("Error going to light sleep: " + str(e))

@@ -21,18 +21,6 @@ statSend = []
 pkgSend = []
 # -------------------------
 
-
-
-def sleepProcess():
-    try:
-        tools.debug("Step 8 - Going to sleep",'v')
-        wilocMain.feedWatchdog()
-        globalVars.mac_scanned[:]=[]
-        globalVars.scanned_frames[:]=[]
-        tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
-    except Exception as e:
-        checkError("Error going to light sleep: " + str(e)) 
-
 def bluetooth_scanner():
     try:
         bluetooth = Bluetooth()
@@ -80,31 +68,27 @@ try:
             tools.sleepWiloc(int(globalVars.BLE_SCAN_PERIOD))
             if len(globalVars.scanned_frames) > 0:
                 dummy_list = wilocMain.rssiFilterDevices(globalVars.RSSI_NEAR_THRESHOLD,globalVars.mac_scanned, globalVars.scanned_frames)
-                # print("Step 1")
                 if len(dummy_list) > 0:
-                    # print("Step 1.1")
                     sentDevices = wilocMain.checkTimeToAddDevices(dummy_list, globalVars.MAX_REFRESH_TIME)
-                    # print("Step 1.2")
                     if len(sentDevices) > 0:
                         pkgSend = wilocMain.createPackageToSend(sentDevices, globalVars.scanned_frames)
                         if len(pkgSend) > 0:
                             wilocMain.manage_devices_send(pkgSend)
-            # print("Step 2")
+            
             if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
                 pycom.nvs_set('laststatsreport', str(int(utime.time())))
                 statSend = wilocMain.createStatisticsReport()
                 wilocMain.manage_devices_send(statSend)
             
-            # print("Step 3")
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
                 if len(globalVars.lora_sent_devices) > 0:
                     lorawan.sendLoRaWANMessage(globalVars.lora_sent_devices)
 
             sched.checkNextReset()
-            sleepProcess()
+            wilocMain.sleepProcess()
         except Exception as eee:
             checkError("Main thread error: " + str(eee))
-            sleepProcess()
+            wilocMain.sleepProcess()
 
 except Exception as e:
     checkError("Main Error: " + str(e))
