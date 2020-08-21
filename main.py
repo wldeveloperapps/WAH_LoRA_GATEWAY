@@ -13,20 +13,21 @@ import globalVars
 import lorawan
 import _thread
 
-
 # -------------------------
 scanned_frames = []
 mac_scanned = []
 statSend = []
 pkgSend = []
 # -------------------------
+ble_thread = False
 
 def bluetooth_scanner():
+    global ble_thread
     try:
-        bluetooth = Bluetooth()
         while True:
             try:
                 tools.debug('Step 1 - Starting BLE scanner, RSSI: ' + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256) + " - RTC: " + str(int(utime.time())) + " - REFRESH: " + str(globalVars.MAX_REFRESH_TIME) + " - SCAN: " + str(int(globalVars.BLE_SCAN_PERIOD)) + " - SLEEP: " + str(int(globalVars.STANDBY_PERIOD)) + " - DEBUG: " + str(globalVars.debug_cc) ,'v')
+                ble_thread = True
                 bluetooth = Bluetooth()
                 bluetooth.start_scan(int(globalVars.BLE_SCAN_PERIOD))
                 while bluetooth.isscanning():
@@ -49,7 +50,9 @@ def bluetooth_scanner():
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
     except Exception as e:
         checkError("Error scanning Bluetooth " + str(e)) 
-        machine.reset()
+        ble_thread = False
+    finally:
+        ble_thread = False
 
 try:
     rtcmgt.initRTC()
@@ -61,9 +64,12 @@ try:
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
     lorawan.join_lora()
-    _thread.start_new_thread(bluetooth_scanner,())
+    
     while True:
         try:
+            if ble_thread == False:
+                _thread.start_new_thread(bluetooth_scanner,())
+
             rtcmgt.updateRTC()
             tools.sleepWiloc(int(globalVars.BLE_SCAN_PERIOD))
             if len(globalVars.scanned_frames) > 0:
@@ -77,12 +83,11 @@ try:
             
             if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
                 pycom.nvs_set('laststatsreport', str(int(utime.time())))
-                statSend = wilocMain.createStatisticsReport()
-                wilocMain.manage_devices_send(statSend)
+                wilocMain.manage_devices_send(wilocMain.createStatisticsReport())
             
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
                 if len(globalVars.lora_sent_devices) > 0:
-                    lorawan.sendLoRaWANMessage(globalVars.lora_sent_devices)
+                    lorawan.sendLoRaWANMessage()
 
             sched.checkNextReset()
             wilocMain.sleepProcess()
@@ -92,6 +97,7 @@ try:
 
 except Exception as e:
     checkError("Main Error: " + str(e))
+finally:
     pycom.nvs_set('rtc', str(int(utime.time())))
-    utime.sleep(1)
+    utime.sleep(2)
     machine.reset()

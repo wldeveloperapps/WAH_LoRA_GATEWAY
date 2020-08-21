@@ -213,9 +213,6 @@ def lora_cb(lora):
     except Exception as e1:
         checkError("Step DL - Error managing downlink: " + str(e1)) 
 
-def changeFlagSent(value):
-    globalVars.flag_sent = value
-
 def UpdateConfigurationParameters(payload):
     try:
         
@@ -261,73 +258,35 @@ def join_lora():
     except Exception as ee:
         checkError("Error joining LoRa Network: " + str(ee))
 
-def sendLoRaWANMessage(devices_payload):
+def sendLoRaWANMessage():
     global lora_socket
     try:
-        if len(devices_payload) > 0: 
+        if lora.has_joined():
+            sendAckMessageThread(lora_socket)
+        else:
+            print("Impossible to send because device is not joined")
+            join_lora()
             if lora.has_joined():
                 sendAckMessageThread(lora_socket)
-            else:
-                print("Impossible to send because device is not joined")
-                join_lora()
-                if lora.has_joined():
-                    _thread.start_new_thread(sendAckMessageThread,(lora_socket,))
 
     except Exception as eee:
         checkError("Error sending LoRaWAN message: " + str(eee))
 
-def sendPayload(sck):
-    try:
-        print("Sending LoRaWAN payload middleware ")
-        _thread.start_new_thread(sendAckMessageThread,(sck,))
-    except Exception as eee:
-        checkError("Error sending LoRaWAN payload: " + str(eee))
-
 def sendAckMessageThread(lora_sck):
-    # global lora_socket
     try:
         print("Threading LoRaWAN messages ")
-        for dev in globalVars.lora_sent_devices:
-            try:
-                # lora_sck.setblocking(False)
-                # _thread.start_new_thread(lora_sck.send,(bytes(dev.raw),))
-                # lora_sck.setblocking(True)
-                lora_sck.send(bytes(dev.raw))
-                # if lora_sck is not None:
-                #     print("##### LoRa Rx Event Callback")
-                #     lora_sck.settimeout(5)
-                #     port = 0
-                #     try:
-                #         frame, port = lora_sck.recvfrom(256) # longuest frame is +-220
-                #         payload = str(ubinascii.hexlify(frame).decode('utf-8'))
-                #         print("##### Receiving message on thread" + payload + " Port: " + str(port))
-                #     except Exception as e2:
-                #         print("Error downlink: " + str(e2))
-                utime.sleep(2)
-                print("Threading LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw))
-            except Exception as e1:
-                print("Error sending message of device: " + str(dev.addr) + " - Error: " + str(e1))
-            utime.sleep(8)
+        if len(globalVars.lora_sent_devices) > 0: 
+            for dev in globalVars.lora_sent_devices:
+                try:
+                    lora_sck.send(bytes(dev.raw))
+                    utime.sleep(2)
+                    print("Threading LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw))
+                except Exception as e1:
+                    print("Error sending message of device: " + str(dev.addr) + " - Error: " + str(e1))
+                utime.sleep(8)
         
-        globalVars.lora_sent_devices = []
-        # lora_sck.close()
-        # _thread.exit()
+            globalVars.lora_sent_devices = []
         
     except Exception as eee:
         checkError("Error Threading LoRaWAN payload: " + str(eee))
-
-def check_downlink_messages(sck):
-    try:
-        print("Checking downlink messages")
-        sck.settimeout(5)
-        downlink_message = sck.recv(256) # See if a downlink message arrived
-        print(downlink_message)
-
-        if not downlink_message: # If there was no message, get out now
-            print("No downlink messages")
-            return
-
-        print("Downlink message received!")
-    except Exception as e:
-        print("Error checking downlink messages: " + str(e))
 

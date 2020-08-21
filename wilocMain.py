@@ -477,9 +477,11 @@ def manage_devices_send(dev_list):
         print("Error managing devices to send: " + str(e))
 
 def sleepProcess():
+    global gc
     try:
         tools.debug("Step 8 - Going to sleep",'v')
         feedWatchdog()
+        gc.collect()
         globalVars.mac_scanned[:]=[]
         globalVars.scanned_frames[:]=[]
         tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))

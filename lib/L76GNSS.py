@@ -315,7 +315,7 @@ class L76GNSS:
                         pdop = float(nmea_message['PDOP'])
                     # dd = haversine(float(nmea_message['Latitude']),float(nmea_message['Longitude']), 40.34189, -3.820436)
                     print("Fix position, timeout: " + str(tc.read()) + " - Position: " + str(nmea_message['Latitude']) +" " + str(str(nmea_message['Longitude'])) + " - Distance: " + str(dd) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv))
-                    if hdop <= 1.2 and hdop > 0 and pdop <= 1.5 and pdop > 0 and nsv >= 7:
+                    if hdop <= 1.5 and hdop > 0 and pdop <= 1.8 and pdop > 0 and nsv >= 7:
                         tc.stop()
                         self.fix = True
                         self.timeLastFix = int(time.ticks_ms() / 1000) - self.timeLastFix
