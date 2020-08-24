@@ -22,10 +22,12 @@
 # Code 20: Error getting battery level
 # Code 21: Error Filtering RSSI values
 import machine
+import utime
 
 def checkError(message):
     try:
         print("Error control: " +str(message))
+        saveErrorInFlash(message)
         if 'I2C bus error' in str(message):
             machine.reset()
         if 'memory' in str(message):
@@ -33,3 +35,14 @@ def checkError(message):
     except Exception as e:
         print("Error managing error issuer")
         machine.reset()
+
+def saveErrorInFlash(strError):
+    try:
+        f = open('/sd/errorIssuer.csv', 'a+')
+        strToSave = str(str(strError) + "," + str(int(utime.time()))+ "\r\n")
+        print("Saving new error: " + str(strToSave))
+        f.write(strToSave)
+        f.close()
+
+    except Exception as e:
+        print("Error saving error: " + str(e))

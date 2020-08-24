@@ -9,7 +9,7 @@ import _thread
 # dac = machine.DAC('P22')
 p_out = Pin('P10', mode=Pin.OUT)
 buzzer_lines = []
-
+flag_buzzer = False
 def BuzzerTurnOff():
     p_out.hold(False)
     p_out.value(0)
@@ -26,11 +26,15 @@ def BeepBuzzer(duration):
         print("Error buzzering 1: " + str(e))
 
 def BuzzerThread(duration):
+    global flag_buzzer
     try:
-        if p_out() == False:
+        if flag_buzzer == False:
+            flag_buzzer = True
             p_out.value(1)
             utime.sleep(duration)
             p_out.value(0)
+            utime.sleep(duration)
+            flag_buzzer = False
         _thread.exit()
     except Exception as e:
         print("Error threading buzzering: " + str(e))

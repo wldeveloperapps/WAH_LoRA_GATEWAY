@@ -12,6 +12,8 @@ import tools
 import globalVars
 import lorawan
 import _thread
+import sys
+from uio import StringIO
 
 # -------------------------
 scanned_frames = []
@@ -20,6 +22,7 @@ statSend = []
 pkgSend = []
 # -------------------------
 ble_thread = False
+s = StringIO()
 
 def bluetooth_scanner():
     global ble_thread
@@ -48,8 +51,9 @@ def bluetooth_scanner():
             except Exception as ee:
                 checkError("Bluetooth thread error: " + str(ee))
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
-    except Exception as e:
-        checkError("Error scanning Bluetooth " + str(e)) 
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error scanning Bluetooth: " + str(s.getvalue()))
         ble_thread = False
     finally:
         ble_thread = False
@@ -60,7 +64,7 @@ try:
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
     sched = Scheduler()
     sched.start()
-    wilocMain.forceConfigParameters()
+    # wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
     lorawan.join_lora()
@@ -95,9 +99,10 @@ try:
             checkError("Main thread error: " + str(eee))
             wilocMain.sleepProcess()
 
-except Exception as e:
-    checkError("Main Error: " + str(e))
+except BaseException as e:
+    err = sys.print_exception(e, s)
+    checkError("Main Error: " + str(s.getvalue()))
 finally:
     pycom.nvs_set('rtc', str(int(utime.time())))
-    utime.sleep(2)
+    utime.sleep(10)
     machine.reset()

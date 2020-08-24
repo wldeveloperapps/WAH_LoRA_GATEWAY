@@ -213,37 +213,38 @@ def lora_cb(lora):
     except Exception as e1:
         checkError("Step DL - Error managing downlink: " + str(e1)) 
 
-def UpdateConfigurationParameters(payload):
+def UpdateConfigurationParameters(raw_payload):
     try:
-        
-        if payload[0:2] == '20':
-            print("Step CC - Setting Max Refresh Time to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('maxrefreshtime', int(payload[2:6],16))
-            globalVars.MAX_REFRESH_TIME = int(payload[2:6],16)
-        if payload[0:2] == '21':
-            print("Step CC - Setting BLE Scan Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('blescanperiod', int(payload[2:6],16))
-            globalVars.BLE_SCAN_PERIOD = int(payload[2:6],16)
-        if payload[0:2] == '22':
-            print("Step CC - Setting StandBy Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('standbyperiod', int(payload[2:6],16))
-            globalVars.STANDBY_PERIOD = int(payload[2:6],16)
-        if payload[0:2] == '23':
-            print("Step CC - Setting RSSI Near Threshold to " + str(int(payload[2:6],16)-256))
-            pycom.nvs_set('rssithreshold', str(payload[2:6],16))
-            globalVars.RSSI_NEAR_THRESHOLD = str(payload[2:6],16)
-        if payload[0:2] == '24':
-            print("Step CC - Setting Statistics Report Interval to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('statsinterval', int(payload[2:6],16))
-            globalVars.STATISTICS_REPORT_INTERVAL = int(payload[2:6],16)
-        if payload[0:2] == '25':
-            print("Step CC - Setting Buzzer Duration Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('buzzerduration', int(payload[2:6],16))
-            globalVars.BUZZER_DURATION = int(payload[2:6],16)
-        if payload[0:2] == '26':
-            print("Step CC - Setting LoRaWAN Sent Period to " + str(int(payload[2:6],16)))
-            pycom.nvs_set('lorasentperiod', int(payload[2:6],16))
-            globalVars.SENT_PERIOD = int(payload[2:6],16)
+        listCommands = [raw_payload[i:i+6] for i in range(0, len(raw_payload), 6)]
+        for payload in listCommands:
+            if payload[0:2] == '20':
+                print("Step CC - Setting Max Refresh Time to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('maxrefreshtime', int(payload[2:6],16))
+                globalVars.MAX_REFRESH_TIME = int(payload[2:6],16)
+            if payload[0:2] == '21':
+                print("Step CC - Setting BLE Scan Period to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('blescanperiod', int(payload[2:6],16))
+                globalVars.BLE_SCAN_PERIOD = int(payload[2:6],16)
+            if payload[0:2] == '22':
+                print("Step CC - Setting StandBy Period to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('standbyperiod', int(payload[2:6],16))
+                globalVars.STANDBY_PERIOD = int(payload[2:6],16)
+            if payload[0:2] == '23':
+                print("Step CC - Setting RSSI Near Threshold to " + str(int(payload[2:6],16)-256))
+                pycom.nvs_set('rssithreshold', str(payload[2:6],16))
+                globalVars.RSSI_NEAR_THRESHOLD = str(payload[2:6],16)
+            if payload[0:2] == '24':
+                print("Step CC - Setting Statistics Report Interval to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('statsinterval', int(payload[2:6],16))
+                globalVars.STATISTICS_REPORT_INTERVAL = int(payload[2:6],16)
+            if payload[0:2] == '25':
+                print("Step CC - Setting Buzzer Duration Period to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('buzzerduration', int(payload[2:6],16))
+                globalVars.BUZZER_DURATION = int(payload[2:6],16)
+            if payload[0:2] == '26':
+                print("Step CC - Setting LoRaWAN Sent Period to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('lorasentperiod', int(payload[2:6],16))
+                globalVars.SENT_PERIOD = int(payload[2:6],16)
     except Exception as e:
         print("Step CC -  Error setting configuiration parameters: " + str(e))
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)

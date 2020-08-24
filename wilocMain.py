@@ -188,7 +188,7 @@ def checkWhiteList(dev):
         if dev not in globalVars.devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
             if str(globalVars.debug_cc).count('v') <= 3:
-                BeepBuzzer(0.1)
+                BeepBuzzer(globalVars.BUZZER_DURATION)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
 
