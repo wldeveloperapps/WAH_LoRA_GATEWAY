@@ -48,15 +48,17 @@ def bluetooth_scanner():
 
                 tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())) + " - Devices: " + str(len(globalVars.mac_scanned)) + " - Packages: " + str(len(globalVars.scanned_frames)),'v')
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
-            except Exception as ee:
-                checkError("Bluetooth thread error: " + str(ee))
+            except BaseException as ee1:
+                err = sys.print_exception(ee1, s)
+                checkError("Error scanning Bluetooth: " + str(s.getvalue()))
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
     except BaseException as e:
         err = sys.print_exception(e, s)
-        checkError("Error scanning Bluetooth: " + str(s.getvalue()))
+        checkError("Error thread Bluetooth: " + str(s.getvalue()))
         ble_thread = False
     finally:
         ble_thread = False
+        _thread.start_new_thread(bluetooth_scanner,())
 
 try:
     rtcmgt.initRTC()
@@ -64,6 +66,7 @@ try:
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
     sched = Scheduler()
     sched.start()
+    tools.getResetCause()
     # wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
@@ -87,7 +90,8 @@ try:
             
             if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
                 pycom.nvs_set('laststatsreport', str(int(utime.time())))
-                wilocMain.manage_devices_send(wilocMain.createStatisticsReport())
+                # _thread.start_new_thread(wilocMain.manage_devices_send,(wilocMain.createStatisticsReport(),))
+                _thread.start_new_thread(wilocMain.createStatisticsReport,())
             
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
                 if len(globalVars.lora_sent_devices) > 0:
@@ -95,14 +99,16 @@ try:
 
             sched.checkNextReset()
             wilocMain.sleepProcess()
-        except Exception as eee:
-            checkError("Main thread error: " + str(eee))
+        except BaseException as eee:
+            err = sys.print_exception(eee, s)
+            checkError("Main Task Error: " + str(s.getvalue()))
             wilocMain.sleepProcess()
 
 except BaseException as e:
     err = sys.print_exception(e, s)
-    checkError("Main Error: " + str(s.getvalue()))
+    checkError("Main Thread Error: " + str(s.getvalue()))
 finally:
+    checkError("Main thread finishing for unexpected error: ")
     pycom.nvs_set('rtc', str(int(utime.time())))
     utime.sleep(10)
     machine.reset()

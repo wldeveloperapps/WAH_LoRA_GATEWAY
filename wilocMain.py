@@ -16,6 +16,8 @@ import globalVars
 import lorawan
 import _thread
 from lib.beacon import Device
+import sys
+from uio import StringIO
 
 sd = SD()
 gc.enable()
@@ -34,10 +36,11 @@ else:
     si = SI7006A20(py)
 
 os.mount(sd, '/sd')
-wdt = WDT(timeout=600000)
+wdt = WDT(timeout=360000)
 # ---------------
 
 strError = []
+s = StringIO()
 # ---------------
 
 # ---------- TODO -------------
@@ -60,8 +63,9 @@ def rssiFilterDevices(RSSI_NEAR_THRESHOLD, macs, frames):
             elif ret[0] < thrs:
                 tools.debug("Step 2 - Not sending device " + str(ubinascii.hexlify(scanDev)) + " Distance: Far " + " RSSI: " + str(ret[0]) + " Samples: " + str(ret[1]) + " DT: " + str(int(utime.time())), 'vv')
         return rssi_filter_devices
-    except Exception as e1:
-        checkError("Step 2 - Error filtering RSSI: " + str(e1)) 
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Step 2 - Error filtering RSSI: " + str(s.getvalue()))
         return []
 
 def calculateRssiAvg(device, frames):
@@ -79,8 +83,9 @@ def calculateRssiAvg(device, frames):
             rssi_average = -120
         #print("Device: " + str(device) + "RSSI Average: " + str(rssi_average) + " Samples: " + str(samples))
         return rssi_average, samples
-    except Exception as e:
-        checkError("Error calculating RSSI Avg")
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error calculating RSSI Avg: " + str(s.getvalue())) 
         return []
 
 def getBatteryLevel(py):
@@ -89,8 +94,9 @@ def getBatteryLevel(py):
         acc_bat = int(round(battery*1000))
         tools.debug("Battery Level: " + str(acc_bat),'vv')
         return acc_bat
-    except Exception as e:
-        checkError("Error getting battery level, " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error getting battery level, " + str(s.getvalue())) 
         return 0
 
 def loadSDCardData():
@@ -110,10 +116,13 @@ def loadSDCardData():
         else:
             checkError("Step 0 - Error Getting LoRaWAN Sent devices list: " + str(sent[1]))
             strError.append(sent[0])
+        
+        loadLastValidPosition()
 
-    except Exception as e:
-        checkError("Step 0 - Error load SD Card information: " + str(e))
-        strError.append('10')
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Step 0 - Error load SD Card information: " + str(s.getvalue())) 
+        # strError.append('10')
 
 def forceConfigParameters():
     try:
@@ -125,8 +134,9 @@ def forceConfigParameters():
         pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
         pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
         utime.sleep(2)
-    except Exception as e:
-        checkError("Error forcing configuration parameters: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error forcing configuration parameters: " + str(s.getvalue())) 
 
 def loadConfigParameters():
     try:
@@ -180,8 +190,9 @@ def loadConfigParameters():
             pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
             checkError("SENT_PERIOD error")
         
-    except Exception as e1:
-        checkError("Step 18 - Error loading config parameters: " + str(e1)) 
+    except BaseException as e1:
+        err = sys.print_exception(e1, s)
+        checkError("Step 18 - Error loading config parameters: " + str(s.getvalue())) 
 
 def checkWhiteList(dev):
     try:
@@ -191,9 +202,9 @@ def checkWhiteList(dev):
                 BeepBuzzer(globalVars.BUZZER_DURATION)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
-
-    except Exception as e:
-        checkError("Error checking whitelist level, " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error checking whitelist level, " + str(s.getvalue()))
 
 def checkTimeToAddDevices(devs, MAX_REFRESH_TIME):
     try:
@@ -210,8 +221,9 @@ def checkTimeToAddDevices(devs, MAX_REFRESH_TIME):
                 ret_devices.append(dev)
         
         return ret_devices
-    except Exception as e:
-        checkError("Error checking time to send data: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error checking time to send data: " + str(s.getvalue()))
         return []
 
 def createPackageToSend(devs, frames):
@@ -268,23 +280,26 @@ def createPackageToSend(devs, frames):
             globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
             devicesToSend.append(Device(addr=dd.addr,raw=strToSend))
         return devicesToSend
-    except Exception as e1:
-        checkError("Step 5 - Error creating package to send: " + str(e1)) 
-        strError.append('1')
+    except BaseException as e1:
+        err = sys.print_exception(e1, s)
+        checkError("Step 5 - Error creating package to send: " + str(s.getvalue()))
+        # strError.append('1')
         return []
 
 def feedWatchdog():
     global wdt
     try:
         wdt.feed()
-    except Exception as e:
-        checkError("Error feeding watchdog")
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error feeding watchdog: " + str(s.getvalue()))
 
 def ForceBuzzerSound(duration):
     try:
         BeepBuzzer(duration)
-    except Exception as e:
-        checkError("Error forcing buzzer")
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error forcing buzzer: " + str(s.getvalue()))
 
 def checkTimeForStatistics(INTERVAL):
     try:
@@ -304,8 +319,9 @@ def checkTimeForStatistics(INTERVAL):
         else:
             tools.debug("Step 6 - No statistics reports yet, WhiteList: " + str(len(globalVars.devices_whitelist)) + " - remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
             return False
-    except Exception as e:
-        checkError("Error checking time for statistics: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error checking time for statistics: " + str(s.getvalue()))
         return False
 
 def createStatisticsReport():
@@ -326,35 +342,13 @@ def createStatisticsReport():
             tools.debug("Waiting for GPS ",'vv')
             globalVars.latitude, globalVars.longitude = getGPS()
             if globalVars.latitude is None or globalVars.longitude is None:
-                try:
-                    dummy_lat = pycom.nvs_get('last_lat')
-                    globalVars.latitude = tuple(map(int, dummy_lat.split(','))) 
-                    # globalVars.latitude = pycom.nvs_get('last_lat')
-                    # globalVars.latitude = struct.pack(">I", 0)
-                    tools.debug("Getting latitude from FLASH: " + str(globalVars.latitude),'v')
-                except Exception:
-                    checkError("Error getting Latitude") 
-                    globalVars.latitude = struct.pack(">I", 0)
-                
-                try:
-                    dummy_lon = pycom.nvs_get('last_lon')
-                    globalVars.longitude = tuple(map(int, dummy_lon.split(','))) 
-                    # globalVars.longitude = pycom.nvs_get('last_lon')
-                    # globalVars.longitude = struct.pack(">I", 0)
-                    tools.debug("Getting longitude from FLASH: " + str(globalVars.longitude),'v')
-                except Exception:
-                    checkError("Error getting Longitude") 
-                    globalVars.longitude = struct.pack(">I", 0)
+                loadLastValidPosition()
             else:
                 lat_st = str(globalVars.latitude[0]) + "," + str(globalVars.latitude[1]) + "," + str(globalVars.latitude[2]) + "," + str(globalVars.latitude[3])
                 lon_st = str(globalVars.longitude[0]) + "," + str(globalVars.longitude[1]) + "," + str(globalVars.longitude[2]) + "," + str(globalVars.longitude[3])
                 pycom.nvs_set('last_lat', lat_st)
                 pycom.nvs_set('last_lon', lon_st)
 
-        # battery = py.read_battery_voltage()
-        # acc_bat = int(round(battery*1000))
-        # dev = struct.pack(">I", globalVars.deviceID)
-        # bat = struct.pack(">I", acc_bat)
         bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
         st_bat = struct.pack(">I", bat)
         dt = struct.pack(">I", utime.time())
@@ -363,9 +357,6 @@ def createStatisticsReport():
         st_gps_stats = struct.pack(">I", gps_stats)
         # sentLen = struct.pack(">I", len(globalVars.device_sent))
         strToSendStatistics.append(struct.pack(">I", 11)[3]) # Protocol
-        # strToSendStatistics.append(dev[3])
-        # strToSendStatistics.append(bat[2])
-        # strToSendStatistics.append(bat[3])
         strToSendStatistics.append(globalVars.longitude[3]) # Gateway Longitude
         strToSendStatistics.append(globalVars.longitude[2]) # Gateway Longitude
         strToSendStatistics.append(globalVars.longitude[1]) # Gateway Longitude
@@ -397,14 +388,14 @@ def createStatisticsReport():
         strToSendStatistics.append(dt[3])
         strToSendStatistics.append(whiteLen[2])
         strToSendStatistics.append(whiteLen[3])
-        # strToSendStatistics.append(sentLen[2])
-        # strToSendStatistics.append(sentLen[3])
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
         statsToSend.append(Device(addr="stats",raw=strToSendStatistics))
+        manage_devices_send(statsToSend)
         return statsToSend
-    except Exception as e:
-        checkError("Error creating statistics report: " + str(e)) 
-        strError.append('19')
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error creating statistics report: " + str(s.getvalue()))
+        # strError.append('19')
         return []
 
 def sendStatisticsReport():
@@ -418,9 +409,26 @@ def sendStatisticsReport():
             arrToSend.append(Device(addr="stats", raw=statSend))
             lorawan.sendLoRaWANMessage(arrToSend)
             tools.debug("Sending statistics report step 3", 'vv')
-           
-    except Exception as e:
-        checkError("Error sending statistics report: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error sending statistics report: " + str(s.getvalue()))
+
+def loadLastValidPosition():
+    try:
+        dummy_lat = pycom.nvs_get('last_lat')
+        globalVars.latitude = tuple(map(int, dummy_lat.split(','))) 
+        tools.debug("Getting latitude from FLASH: " + str(globalVars.latitude),'v')
+    except Exception:
+        checkError("Error getting Latitude") 
+        globalVars.latitude = struct.pack(">I", 0)
+    
+    try:
+        dummy_lon = pycom.nvs_get('last_lon')
+        globalVars.longitude = tuple(map(int, dummy_lon.split(','))) 
+        tools.debug("Getting longitude from FLASH: " + str(globalVars.longitude),'v')
+    except Exception:
+        checkError("Error getting Longitude") 
+        globalVars.longitude = struct.pack(">I", 0)
 
 def getGPS():
     try:
@@ -437,13 +445,17 @@ def getGPS():
             if dt is not None:
                 rtc.init(dt)
             tools.debug("HDOP: " + str(coord['HDOP']) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
-            globalVars.last_lat_tmp =  coord['latitude']
-            globalVars.last_lon_tmp =  coord['longitude']
-            return big_endian_latitude, big_endian_longitude
+            if float(str(coord['HDOP'])) > float(globalVars.min_hdop):
+                return None,None
+            else:
+                globalVars.last_lat_tmp =  coord['latitude']
+                globalVars.last_lon_tmp =  coord['longitude']
+                return big_endian_latitude, big_endian_longitude
         else:
             return None,None
-    except Exception as e:
-        checkError("Error getting GPS: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error getting GPS: " + str(s.getvalue()))
         return None,None
 
 def checkTimeToSend(interval):
@@ -455,8 +467,9 @@ def checkTimeToSend(interval):
         else:
             tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)),"v")
             return False
-    except Exception as e:
-        checkError("Error checking time to send by LoRa: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error checking time to send by LoRa: " + str(s.getvalue()))
         return False
 
 def manage_devices_send(dev_list):
@@ -473,8 +486,9 @@ def manage_devices_send(dev_list):
                 # print("Adding device to sent list: " + str(dd1.addr))
 
         tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"v")
-    except Exception as e:
-        print("Error managing devices to send: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error managing devices to send: " + str(s.getvalue()))
 
 def sleepProcess():
     global gc
@@ -485,5 +499,6 @@ def sleepProcess():
         globalVars.mac_scanned[:]=[]
         globalVars.scanned_frames[:]=[]
         tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
-    except Exception as e:
-        checkError("Error going to light sleep: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error going to light sleep: " + str(s.getvalue()))

@@ -15,6 +15,8 @@ import pycom
 import _thread
 import gc
 import tools
+import sys
+from uio import StringIO
 
 if globalVars.REGION == 'EU868':
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
@@ -25,6 +27,7 @@ lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 
 strError = []
 flag_sent = False
+s = StringIO()
 
 def prepare_channels_as923(lora, channel, data_rate):
     AS923_FREQUENCIES = [
@@ -118,9 +121,10 @@ def joinLoRaWANModule(lora):
             print('Joined!!')
             # lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
             lora.nvram_save()
-    except Exception as e:
-        checkError("Step 0.1 - Error initializaing LoRaWAN module: " + str(e))
-        strError.append('3')
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Step 0.1 - Error initializaing LoRaWAN module: " + str(s.getvalue()))
+        # strError.append('3')
 
 def initLoRaWANSocket(lora_socket, lora):
     try:
@@ -130,11 +134,10 @@ def initLoRaWANSocket(lora_socket, lora):
         lora_socket.setsockopt(socket.SOL_LORA, socket.SO_CONFIRMED, 1)
         lora.callback(trigger=( LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT | LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
         lora_socket.setblocking(True)
-
-        # return lora_socket
-    except Exception as e:
-        checkError("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(e))
-        strError.append('2')
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(s.getvalue()))
+        # strError.append('2')
 
 def lora_cb(lora):
     global lora_socket
@@ -210,8 +213,9 @@ def lora_cb(lora):
             # BeepBuzzer(0.5)
         if events & LoRa.TX_FAILED_EVENT:
             print("#### Error TxEvent ####")
-    except Exception as e1:
-        checkError("Step DL - Error managing downlink: " + str(e1)) 
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Step DL - Error managing downlink: " + str(s.getvalue()))
 
 def UpdateConfigurationParameters(raw_payload):
     try:
@@ -245,8 +249,9 @@ def UpdateConfigurationParameters(raw_payload):
                 print("Step CC - Setting LoRaWAN Sent Period to " + str(int(payload[2:6],16)))
                 pycom.nvs_set('lorasentperiod', int(payload[2:6],16))
                 globalVars.SENT_PERIOD = int(payload[2:6],16)
-    except Exception as e:
-        print("Step CC -  Error setting configuiration parameters: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Step CC -  Error setting configuiration parameters: " + str(s.getvalue()))
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
 
 def join_lora():
@@ -256,8 +261,9 @@ def join_lora():
         joinLoRaWANModule(lora)
         initLoRaWANSocket(lora_socket, lora)
         utime.sleep(1)
-    except Exception as ee:
-        checkError("Error joining LoRa Network: " + str(ee))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        checkError("Error joining LoRa Network: " + str(s.getvalue()))
 
 def sendLoRaWANMessage():
     global lora_socket
@@ -269,9 +275,9 @@ def sendLoRaWANMessage():
             join_lora()
             if lora.has_joined():
                 sendAckMessageThread(lora_socket)
-
-    except Exception as eee:
-        checkError("Error sending LoRaWAN message: " + str(eee))
+    except BaseException as eee:
+        err = sys.print_exception(eee, s)
+        checkError("Error sending LoRaWAN message: " + str(s.getvalue()))
 
 def sendAckMessageThread(lora_sck):
     try:
@@ -288,6 +294,7 @@ def sendAckMessageThread(lora_sck):
         
             globalVars.lora_sent_devices = []
         
-    except Exception as eee:
-        checkError("Error Threading LoRaWAN payload: " + str(eee))
+    except BaseException as eee:
+        err = sys.print_exception(eee, s)
+        checkError("Error Threading LoRaWAN payload: " + str(s.getvalue()))
 

@@ -28,12 +28,14 @@ def checkError(message):
     try:
         print("Error control: " +str(message))
         saveErrorInFlash(message)
+        utime.sleep(5)
         if 'I2C bus error' in str(message):
             machine.reset()
         if 'memory' in str(message):
             machine.reset()     
     except Exception as e:
-        print("Error managing error issuer")
+        saveErrorInFlash("Error managing error issuer")
+        utime.sleep(5)
         machine.reset()
 
 def saveErrorInFlash(strError):

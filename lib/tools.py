@@ -1,5 +1,6 @@
 from machine import Pin, SD
 from lib.beacon import DeviceBuzzer, DeviceReport
+from errorissuer import checkError
 # from math import radians, sin, cos, acos
 import math
 import time
@@ -65,13 +66,17 @@ def getBatteryPercentage(level):
 
 def sleepWiloc(period):
     try:
-        debug("In sleep method: " + str(globalVars.stop_sleep_flag) + " - LoRaSending: " + str(globalVars.flag_sent),'vv')
+        # debug("In sleep method: " + str(globalVars.stop_sleep_flag) + " - LoRaSending: " + str(globalVars.flag_sent),'vv')
         gc.collect()
         if globalVars.stop_sleep_flag == False and globalVars.flag_sent == False:
             utime.sleep(period)
         
     except Exception as e:
         print("Step BAT -  Error getting battery level: " + str(e))
+
+def getResetCause():
+    reset_cause = machine.reset_cause()
+    checkError("Reset cause: " + str(reset_cause))
 
 def int_to_bytes(value, length):
     result = []

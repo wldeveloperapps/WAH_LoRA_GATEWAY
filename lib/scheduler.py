@@ -1,6 +1,7 @@
 import utime
 import machine
 import rtcmgt
+from errorissuer import checkError
 
 class Scheduler:
     
@@ -16,7 +17,7 @@ class Scheduler:
         dt = utime.gmtime()
         print("Scheduler: " + str(dt[3]) + ":" + str(dt[4]) + ":" + str(dt[5]))
         if dt[3] == int(self.dailyreset.split(":")[0]) and dt[4] == int(self.dailyreset.split(":")[1]) and dt[5] > int(self.dailyreset.split(":")[2]) and dt[5] < (int(self.dailyreset.split(":")[2])+15):
-            print("Reseting module because of daily schedule")
+            checkError("Reseting module because of daily schedule")
             rtcmgt.updateRTC()
             utime.sleep(2)
             machine.reset()           

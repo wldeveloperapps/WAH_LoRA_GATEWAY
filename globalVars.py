@@ -45,9 +45,12 @@ lora_sent_devices = []
 
 # --------- GPS ----------------
 gps_enabled = True
-gps_timeout = 600
+gps_timeout = 300
 max_distance_allow = 50
 latitude = [0,0,0,0]
 longitude = [0,0,0,0]
 last_lat_tmp=0
 last_lon_tmp=0
+min_hdop = 1.2
+min_pdop = 1.5
+min_satellites = 8
