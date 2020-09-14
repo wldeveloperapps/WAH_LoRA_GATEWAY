@@ -205,6 +205,8 @@ def lora_cb(lora):
                         BeepBuzzer(2)
                     elif payload[0:2] == 'b0': # Force Alarm
                         BeepBuzzer(int(payload[2:4],16))
+                    elif payload[0:2] == 'b1': # Foce GPS Acquisition
+                        pycom.nvs_set('laststatsreport', str(0))
                     else:
                         print("##### Message received other code: " + str(payload[0:2]) + " Lenght: " + str(len(payload)/2))
 

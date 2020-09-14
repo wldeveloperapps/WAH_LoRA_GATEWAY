@@ -46,7 +46,7 @@ def bluetooth_scanner():
                                 wilocMain.checkWhiteList(str(ubinascii.hexlify(adv.mac).decode('utf-8')))
                             globalVars.scanned_frames.append(Device(addr=adv.mac,rssi=adv.rssi, raw=data_raw))
 
-                tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())) + " - Devices: " + str(len(globalVars.mac_scanned)) + " - Packages: " + str(len(globalVars.scanned_frames)),'v')
+                tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())),'v')
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
             except BaseException as ee1:
                 err = sys.print_exception(ee1, s)

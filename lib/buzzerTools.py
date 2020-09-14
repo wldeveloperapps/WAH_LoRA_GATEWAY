@@ -20,8 +20,8 @@ def BuzzerTurnOff():
 
 def BeepBuzzer(duration):
     try:
-        _thread.start_new_thread(BuzzerThread,(duration,))
-        # BuzzerThread(duration)
+        #_thread.start_new_thread(BuzzerThread,(duration,))
+        BuzzerThread(duration)
     except Exception as e:
         print("Error buzzering 1: " + str(e))
 
@@ -35,7 +35,7 @@ def BuzzerThread(duration):
             p_out.value(0)
             utime.sleep(duration)
             flag_buzzer = False
-        _thread.exit()
+        # _thread.exit()
     except Exception as e:
         print("Error threading buzzering: " + str(e))
 

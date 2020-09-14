@@ -54,14 +54,14 @@ def rssiFilterDevices(RSSI_NEAR_THRESHOLD, macs, frames):
         from lib.beacon import DeviceFilter
         rssi_filter_devices = []
         thrs = int(RSSI_NEAR_THRESHOLD,16) - 256
-        tools.debug("Step 2 - Filtering RSSI of devices, Threshold: " + str(thrs), 'v')
+        tools.debug("Step 2 - Filtering RSSI, Threshold: " + str(thrs) + " - Devices: " + str(len(macs)) + " - Records: " + str(len(frames)), 'v')
         for scanDev in macs:
             ret = calculateRssiAvg(scanDev, frames)
-            if ret[0] >= thrs:
-                tools.debug("Step 2 - Adding device to RSSI Filter list " + str(ubinascii.hexlify(scanDev)) + " Distance: Close " + " RSSI: " + str(ret[0]) + " Samples: " + str(ret[1]) + " DT: " + str(int(utime.time())), 'vv')
+            if int(ret[0]) >= int(thrs):
+                tools.debug("Step 2.1 - Adding device to RSSI Filter list " + str(ubinascii.hexlify(scanDev)) + " Distance: Close " + " RSSI: " + str(int(ret[0])) + " Samples: " + str(ret[1]) + " - Up Threshold: " + str(ret[2]) + " - Down Threshold: " + str(ret[3]) + " DT: " + str(int(utime.time())), 'vv')
                 rssi_filter_devices.append(DeviceFilter(str(ubinascii.hexlify(scanDev).decode('utf-8')), ret[0], ret[1], int(utime.time()), scanDev))
-            elif ret[0] < thrs:
-                tools.debug("Step 2 - Not sending device " + str(ubinascii.hexlify(scanDev)) + " Distance: Far " + " RSSI: " + str(ret[0]) + " Samples: " + str(ret[1]) + " DT: " + str(int(utime.time())), 'vv')
+            elif int(ret[0]) < int(thrs):
+                tools.debug("Step 2.1 - Not sending device " + str(ubinascii.hexlify(scanDev)) + " Distance: Far " + " RSSI: " + str(ret[0]) + " Samples: " + str(ret[1]) + " - Up Threshold: " + str(ret[2]) + " - Down Threshold: " + str(ret[3]) + " DT: " + str(int(utime.time())), 'vv')
         return rssi_filter_devices
     except BaseException as e:
         err = sys.print_exception(e, s)
@@ -73,16 +73,23 @@ def calculateRssiAvg(device, frames):
         rssi_acc = 0
         rssi_average = 0
         samples = 0
+        upthres = 0
+        downthres = 0
         for dev in frames:
             if device in dev.addr:
                 samples += 1
                 rssi_acc += dev.rssi
+                if int(dev.rssi) >= (int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256):
+                    downthres += 1
+                else:
+                    upthres += 1
         if samples > 0:
             rssi_average = rssi_acc / samples
         else: 
             rssi_average = -120
-        #print("Device: " + str(device) + "RSSI Average: " + str(rssi_average) + " Samples: " + str(samples))
-        return rssi_average, samples
+ 
+        # tools.debug("Step 2.2 ------- Device: " + str(ubinascii.hexlify(device).decode('utf-8')) + " - RSSI Avg: " + str(rssi_average) + " - Samples: " + str(samples) + " - Up Threshold: " + str(upthres) + " - Down Threshold: " + str(downthres),'vv')
+        return rssi_average, samples, upthres, downthres
     except BaseException as e:
         err = sys.print_exception(e, s)
         checkError("Error calculating RSSI Avg: " + str(s.getvalue())) 
