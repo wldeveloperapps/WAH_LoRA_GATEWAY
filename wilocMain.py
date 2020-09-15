@@ -57,7 +57,8 @@ def rssiFilterDevices(RSSI_NEAR_THRESHOLD, macs, frames):
         tools.debug("Step 2 - Filtering RSSI, Threshold: " + str(thrs) + " - Devices: " + str(len(macs)) + " - Records: " + str(len(frames)), 'v')
         for scanDev in macs:
             ret = calculateRssiAvg(scanDev, frames)
-            if int(ret[0]) >= int(thrs):
+            #if int(ret[0]) >= int(thrs):
+            if int(ret[3]) >= globalVars.BUZZER_COUNTER_ALARM:
                 tools.debug("Step 2.1 - Adding device to RSSI Filter list " + str(ubinascii.hexlify(scanDev)) + " Distance: Close " + " RSSI: " + str(int(ret[0])) + " Samples: " + str(ret[1]) + " - Up Threshold: " + str(ret[2]) + " - Down Threshold: " + str(ret[3]) + " DT: " + str(int(utime.time())), 'vv')
                 rssi_filter_devices.append(DeviceFilter(str(ubinascii.hexlify(scanDev).decode('utf-8')), ret[0], ret[1], int(utime.time()), scanDev))
             elif int(ret[0]) < int(thrs):
@@ -140,6 +141,7 @@ def forceConfigParameters():
         pycom.nvs_set('buzzerduration', globalVars.BUZZER_DURATION)
         pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
         pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
+        pycom.nvs_set('buzcountalarm', globalVars.BUZZER_COUNTER_ALARM)
         utime.sleep(2)
     except BaseException as e:
         err = sys.print_exception(e, s)
@@ -178,12 +180,11 @@ def loadConfigParameters():
             globalVars.BUZZER_DURATION = pycom.nvs_get('buzzerduration')
             tools.debug("Step 0.5 - BUZZER_DURATION: " + str(globalVars.BUZZER_DURATION),'v')
         except Exception:
-            pycom.nvs_set('buzzerduration', globalVars.BUZZER_DURATION)
+            pycom.nvs_set('buzzerduration', str(globalVars.BUZZER_DURATION))
             checkError("BUZZER_DURATION error")
         
         try:
             globalVars.STATISTICS_REPORT_INTERVAL = pycom.nvs_get('statsinterval')
-            # STATISTICS_REPORT_INTERVAL = 60 # Force parameter value
             tools.debug("Step 0.5 - STATISTICS_REPORT_INTERVAL: " + str(globalVars.STATISTICS_REPORT_INTERVAL),'v')
         except Exception:
             pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
@@ -191,11 +192,17 @@ def loadConfigParameters():
 
         try:
             globalVars.SENT_PERIOD = pycom.nvs_get('lorasentperiod')
-            # STATISTICS_REPORT_INTERVAL = 60 # Force parameter value
             tools.debug("Step 0.5 - SENT_PERIOD: " + str(globalVars.SENT_PERIOD),'v')
         except Exception:
             pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
             checkError("SENT_PERIOD error")
+    
+        try:
+            globalVars.BUZZER_COUNTER_ALARM = pycom.nvs_get('buzcountalarm')
+            tools.debug("Step 0.5 - BUZZER_COUNTER_ALARM: " + str(globalVars.BUZZER_COUNTER_ALARM),'v')
+        except Exception:
+            pycom.nvs_set('buzcountalarm', globalVars.BUZZER_COUNTER_ALARM)
+            checkError("BUZZER_COUNTER_ALARM error")
         
     except BaseException as e1:
         err = sys.print_exception(e1, s)
@@ -206,7 +213,7 @@ def checkWhiteList(dev):
         if dev not in globalVars.devices_whitelist:
             tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
             if str(globalVars.debug_cc).count('v') <= 3:
-                BeepBuzzer(globalVars.BUZZER_DURATION)
+                BeepBuzzer(0.1)
         else:
             tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
     except BaseException as e:
@@ -274,16 +281,27 @@ def createPackageToSend(devs, frames):
             if len(last_frame) > 22:
                 last_lat = last_frame[12:20]
                 last_lon = last_frame[4:12]
-            # print("Last frame: " + str(last_frame) + " - Last lat: " + str(last_lat) + " - Last lon: " + str(last_lon))
-            #TODO Convert latitude & longitude to ByteArray
-            strToSend.append(int(last_lon[0]+last_lon[1],16)) # End-Device Longitude
-            strToSend.append(int(last_lon[2]+last_lon[3],16)) # End-Device Longitude
-            strToSend.append(int(last_lon[4]+last_lon[5],16)) # End-Device Longitude
-            strToSend.append(int(last_lon[6]+last_lon[7],16)) # End-Device Longitude
-            strToSend.append(int(last_lat[0]+last_lat[1],16)) # End-Device Latitude 
-            strToSend.append(int(last_lat[2]+last_lat[3],16)) # End-Device Latitude 
-            strToSend.append(int(last_lat[4]+last_lat[5],16)) # End-Device Latitude 
-            strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
+            
+
+            if int(last_lon[0]+last_lon[1],16) == 0 and int(last_lon[2]+last_lon[3],16) == 0 and int(last_lon[4]+last_lon[5],16) == 0 and int(last_lon[6]+last_lon[7],16) == 0:
+                tools.debug("----- Device with NO GPS -----","vv")
+                strToSend.append(globalVars.longitude[3]) # Gateway Longitude
+                strToSend.append(globalVars.longitude[2]) # Gateway Longitude
+                strToSend.append(globalVars.longitude[1]) # Gateway Longitude
+                strToSend.append(globalVars.longitude[0]) # Gateway Longitude
+                strToSend.append(globalVars.latitude[3]) # Gateway Latitude 
+                strToSend.append(globalVars.latitude[2]) # Gateway Latitude 
+                strToSend.append(globalVars.latitude[1]) # Gateway Latitude 
+                strToSend.append(globalVars.latitude[0]) # Gateway Latitude 
+            else:
+                strToSend.append(int(last_lon[0]+last_lon[1],16)) # End-Device Longitude
+                strToSend.append(int(last_lon[2]+last_lon[3],16)) # End-Device Longitude
+                strToSend.append(int(last_lon[4]+last_lon[5],16)) # End-Device Longitude
+                strToSend.append(int(last_lon[6]+last_lon[7],16)) # End-Device Longitude
+                strToSend.append(int(last_lat[0]+last_lat[1],16)) # End-Device Latitude 
+                strToSend.append(int(last_lat[2]+last_lat[3],16)) # End-Device Latitude 
+                strToSend.append(int(last_lat[4]+last_lat[5],16)) # End-Device Latitude 
+                strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
             globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
             devicesToSend.append(Device(addr=dd.addr,raw=strToSend))
         return devicesToSend
@@ -472,7 +490,7 @@ def checkTimeToSend(interval):
             globalVars.last_lora_sent = ts
             return True
         else:
-            tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)),"v")
+            tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)) + " - Store devices: " + str(len(globalVars.lora_sent_devices)),"v")
             return False
     except BaseException as e:
         err = sys.print_exception(e, s)

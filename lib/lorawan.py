@@ -251,6 +251,10 @@ def UpdateConfigurationParameters(raw_payload):
                 print("Step CC - Setting LoRaWAN Sent Period to " + str(int(payload[2:6],16)))
                 pycom.nvs_set('lorasentperiod', int(payload[2:6],16))
                 globalVars.SENT_PERIOD = int(payload[2:6],16)
+            if payload[0:2] == '27':
+                print("Step CC - Setting BUZZER_COUNTER_ALARM to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('buzcountalarm', int(payload[2:6],16))
+                globalVars.BUZZER_COUNTER_ALARM = int(payload[2:6],16)
     except BaseException as e:
         err = sys.print_exception(e, s)
         checkError("Step CC -  Error setting configuiration parameters: " + str(s.getvalue()))

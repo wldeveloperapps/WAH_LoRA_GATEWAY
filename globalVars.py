@@ -9,10 +9,10 @@ MAX_REFRESH_TIME = 150 # Code 20
 BLE_SCAN_PERIOD = 4 # Code 21
 STANDBY_PERIOD = 1 # Code 22
 RSSI_NEAR_THRESHOLD = 'c4' # Code 23
-# RSSI_NEAR_THRESHOLD = 'c4' # Code 23
-STATISTICS_REPORT_INTERVAL = 43200 # Code 24
-BUZZER_DURATION = 0.5 # Code 25
-SENT_PERIOD = 300
+STATISTICS_REPORT_INTERVAL = 600 # Code 24
+BUZZER_DURATION = 1 # Code 25
+SENT_PERIOD = 300 # Code 26
+BUZZER_COUNTER_ALARM = 3 # Code 27
 
 # ------ LoRaWAN Configuration -------
 LORA_CHANNEL = 1
@@ -22,7 +22,7 @@ REGION = 'EU868'
 
 
 # ------ Debug -------------
-debug_cc = "v"
+debug_cc = "vv"
 
 # ------ Timers -----------
 
@@ -51,6 +51,6 @@ latitude = [0,0,0,0]
 longitude = [0,0,0,0]
 last_lat_tmp=0
 last_lon_tmp=0
-min_hdop = 1.2
-min_pdop = 1.5
+min_hdop = 1.5
+min_pdop = 1.8
 min_satellites = 8

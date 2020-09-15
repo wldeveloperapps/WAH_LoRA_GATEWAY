@@ -67,7 +67,7 @@ try:
     sched = Scheduler()
     sched.start()
     tools.getResetCause()
-    # wilocMain.forceConfigParameters()
+    wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
     lorawan.join_lora()
