@@ -6,7 +6,7 @@ deviceID = 2 # PyTrack
 
 # ------ Configuration parameters --------
 MAX_REFRESH_TIME = 150 # Code 20
-BLE_SCAN_PERIOD = 4 # Code 21
+BLE_SCAN_PERIOD = 6 # Code 21
 STANDBY_PERIOD = 1 # Code 22
 RSSI_NEAR_THRESHOLD = 'c4' # Code 23
 STATISTICS_REPORT_INTERVAL = 600 # Code 24

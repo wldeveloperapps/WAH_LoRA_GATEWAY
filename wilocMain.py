@@ -247,7 +247,7 @@ def createPackageToSend(devs, frames):
         # tools.debug("Step 4 - Creating messages to send, Devs: " + str(devs),'v')
         devicesToSend = []
         for dd in devs:
-            tools.debug("Creating package to send of device: " + str(dd.addr),'v')
+            
             strToSend = []
             gps_stats = 66
             bat = tools.getBatteryPercentage(int(round(py.read_battery_voltage()*1000)))
@@ -273,6 +273,8 @@ def createPackageToSend(devs, frames):
             last_frame = ""
             last_lat = ""
             last_lon = ""
+            dev_gps_stats = 0
+            gps_flag = True
             for fr in frames:
                 # print("FRAMES: " + str(ubinascii.hexlify(fr.addr).decode('utf-8')) + " - DD: " + str(dd.addr) + " - FR: " + str(fr.raw))
                 if str(ubinascii.hexlify(fr.addr).decode('utf-8')) == dd.addr:
@@ -281,10 +283,15 @@ def createPackageToSend(devs, frames):
             if len(last_frame) > 22:
                 last_lat = last_frame[12:20]
                 last_lon = last_frame[4:12]
-            
+                dev_gps_stats = int(last_frame[20:22],16)
 
             if int(last_lon[0]+last_lon[1],16) == 0 and int(last_lon[2]+last_lon[3],16) == 0 and int(last_lon[4]+last_lon[5],16) == 0 and int(last_lon[6]+last_lon[7],16) == 0:
-                tools.debug("----- Device with NO GPS -----","vv")
+                gps_flag = False
+            if dev_gps_stats < 64:
+                gps_flag = False
+
+            if gps_flag == False:
+                tools.debug("----- Device with NO GPS -----","vvv")
                 strToSend.append(globalVars.longitude[3]) # Gateway Longitude
                 strToSend.append(globalVars.longitude[2]) # Gateway Longitude
                 strToSend.append(globalVars.longitude[1]) # Gateway Longitude
@@ -304,6 +311,7 @@ def createPackageToSend(devs, frames):
                 strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
             globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
             devicesToSend.append(Device(addr=dd.addr,raw=strToSend))
+            tools.debug("Creating package to send of device: " + str(dd.addr) + " - Batt: " + str(bat) + " - GPS From: " + str('Device' if gps_flag == True else 'Campanolo'),'v')
         return devicesToSend
     except BaseException as e1:
         err = sys.print_exception(e1, s)
@@ -510,7 +518,7 @@ def manage_devices_send(dev_list):
                 globalVars.lora_sent_devices.append(dd1)
                 # print("Adding device to sent list: " + str(dd1.addr))
 
-        tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"v")
+        tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"vvv")
     except BaseException as e:
         err = sys.print_exception(e, s)
         checkError("Error managing devices to send: " + str(s.getvalue()))

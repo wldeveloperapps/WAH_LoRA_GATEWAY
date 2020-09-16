@@ -53,7 +53,7 @@ def LoRaWANSentListNewDevice(device):
 def LoRaWANSentListUpdateDevice(device):
     global sent_lines
     try:
-        tools.debug("Step 5 - Updating register LoRaWANSent list", "vv")
+        tools.debug("Step 5 - Updating register LoRaWANSent list", "vvv")
         strToSave = ''
         sent_devices = []
         if len(sent_lines) <= 0:

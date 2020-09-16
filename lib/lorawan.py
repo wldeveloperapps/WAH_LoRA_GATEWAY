@@ -287,7 +287,7 @@ def sendLoRaWANMessage():
 
 def sendAckMessageThread(lora_sck):
     try:
-        print("Threading LoRaWAN messages ")
+        print("Starting Threading LoRaWAN messages ")
         if len(globalVars.lora_sent_devices) > 0: 
             for dev in globalVars.lora_sent_devices:
                 try:

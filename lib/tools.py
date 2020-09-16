@@ -57,7 +57,7 @@ def getBatteryPercentage(level):
         else:
             batt = int(round(100 - (((max - level) * 100) / (max - min))))  
         
-        debug("Step 5 - Battery level: " + str(batt),'vv')
+        debug("Step 5 - Battery level: " + str(batt),'vvv')
         return batt
 
     except Exception as e:

@@ -96,9 +96,10 @@ try:
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
                 if len(globalVars.lora_sent_devices) > 0:
                     lorawan.sendLoRaWANMessage()
-
-            sched.checkNextReset()
-            wilocMain.sleepProcess()
+            else:
+                sched.checkNextReset()
+                wilocMain.sleepProcess()
+            
         except BaseException as eee:
             err = sys.print_exception(eee, s)
             checkError("Main Task Error: " + str(s.getvalue()))
