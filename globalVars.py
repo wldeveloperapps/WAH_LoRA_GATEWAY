@@ -5,20 +5,20 @@ deviceID = 2 # PyTrack
 # deviceID = 1 # PySense
 
 # ------ Configuration parameters --------
-MAX_REFRESH_TIME = 150 # Code 20
+MAX_REFRESH_TIME = 30 # Code 20
 BLE_SCAN_PERIOD = 6 # Code 21
 STANDBY_PERIOD = 1 # Code 22
 RSSI_NEAR_THRESHOLD = 'c4' # Code 23
 STATISTICS_REPORT_INTERVAL = 600 # Code 24
 BUZZER_DURATION = 1 # Code 25
-SENT_PERIOD = 300 # Code 26
+SENT_PERIOD = 60 # Code 26
 BUZZER_COUNTER_ALARM = 3 # Code 27
-
+ALARM_LIST_TYPE = 2 # Code 28 ------- 0-None / 1-Whitelist / 2-Blacklist / 3-Both 
 # ------ LoRaWAN Configuration -------
 LORA_CHANNEL = 1
-LORA_NODE_DR = 5
-# REGION = 'AS923'
-REGION = 'EU868'
+LORA_NODE_DR = 4
+REGION = 'AS923'
+# REGION = 'EU868'
 
 
 # ------ Debug -------------
@@ -32,8 +32,10 @@ stop_sleep_flag = False
 flag_sent = False
 flag_blelora = False
 
+
 # -------- Lists ------------
 devices_whitelist = []
+devices_blacklist = []
 device_sent = []
 mac_scanned = []
 scanned_frames = []

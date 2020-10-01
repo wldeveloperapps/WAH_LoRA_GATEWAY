@@ -1,4 +1,5 @@
 from lib.whitelistTools import WhiteListGetDevices
+from lib.blacklistTools import BlackListGetDevices
 from lib.loRaReportsTools import LoRaWANListSentDevices, LoRaWANSentListUpdateDevice
 from lib.buzzerTools import BeepBuzzer
 from machine import SD, WDT
@@ -19,7 +20,6 @@ from lib.beacon import Device
 import sys
 from uio import StringIO
 
-sd = SD()
 gc.enable()
 if globalVars.deviceID == 2:
     from pytrack import Pytrack
@@ -35,7 +35,7 @@ else:
     acc = LIS2HH12(py)
     si = SI7006A20(py)
 
-os.mount(sd, '/sd')
+
 wdt = WDT(timeout=360000)
 # ---------------
 
@@ -111,10 +111,16 @@ def loadSDCardData():
     try:
         ret = WhiteListGetDevices() 
         if ret[0] == 1:
-            # print("Step 0 - Getting whitelist")
             globalVars.devices_whitelist = ret[1]
         else:
             checkError("Step 0 - Error Getting whitelist: " + str(ret[1]))
+            strError.append(ret[0])
+
+        ret = BlackListGetDevices() 
+        if ret[0] == 1:
+            globalVars.devices_blacklist = ret[1]
+        else:
+            checkError("Step 0 - Error Getting blacklist: " + str(ret[1]))
             strError.append(ret[0])
 
         sent = LoRaWANListSentDevices() 
@@ -142,6 +148,7 @@ def forceConfigParameters():
         pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
         pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
         pycom.nvs_set('buzcountalarm', globalVars.BUZZER_COUNTER_ALARM)
+        pycom.nvs_set('alarmlisttype', globalVars.ALARM_LIST_TYPE)
         utime.sleep(2)
     except BaseException as e:
         err = sys.print_exception(e, s)
@@ -196,26 +203,39 @@ def loadConfigParameters():
         except Exception:
             pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
             checkError("SENT_PERIOD error")
-    
+
         try:
             globalVars.BUZZER_COUNTER_ALARM = pycom.nvs_get('buzcountalarm')
             tools.debug("Step 0.5 - BUZZER_COUNTER_ALARM: " + str(globalVars.BUZZER_COUNTER_ALARM),'v')
         except Exception:
             pycom.nvs_set('buzcountalarm', globalVars.BUZZER_COUNTER_ALARM)
             checkError("BUZZER_COUNTER_ALARM error")
+
+        try:
+            globalVars.ALARM_LIST_TYPE = pycom.nvs_get('alarmlisttype')
+            tools.debug("Step 0.5 - ALARM_LIST_TYPE: " + str(globalVars.ALARM_LIST_TYPE),'v')
+        except Exception:
+            pycom.nvs_set('alarmlisttype', globalVars.ALARM_LIST_TYPE)
+            checkError("ALARM_LIST_TYPE error")
         
     except BaseException as e1:
         err = sys.print_exception(e1, s)
         checkError("Step 18 - Error loading config parameters: " + str(s.getvalue())) 
 
-def checkWhiteList(dev):
+def checkListType(dev, listType):
     try:
-        if dev not in globalVars.devices_whitelist:
-            tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
-            if str(globalVars.debug_cc).count('v') <= 3:
+        if listType == 1:
+            if dev not in globalVars.devices_whitelist:
+                tools.debug("Step 1.1 - Device not found in the Whitelist: " + str(dev),'vvv')
                 BeepBuzzer(0.1)
-        else:
-            tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
+            else:
+                tools.debug("Step 1.1 - Device found in Whitelist: " + str(dev),'vvv')
+        elif listType == 2:
+            if dev in globalVars.devices_blacklist:
+                tools.debug("Step 1.1 - Device found in the Blacklist: " + str(dev),'vvv')
+                BeepBuzzer(0.1)
+            else:
+                tools.debug("Step 1.1 - Device not found in Blacklist: " + str(dev),'vvv')
     except BaseException as e:
         err = sys.print_exception(e, s)
         checkError("Error checking whitelist level, " + str(s.getvalue()))

@@ -1,5 +1,6 @@
 from lib.loRaReportsTools import LoRaWANSentListCleanDevices
-from lib.whitelistTools import WhiteListNewDevice, WhiteListDeleteDevices, WhiteListDeleteSpecificDevice
+import whitelistTools
+import blacklisttools
 from lib.buzzerTools import BeepBuzzer, BuzzerListCleanDevices
 from lib.rtcmgt import initRTC, forceRTC
 from errorissuer import checkError
@@ -21,7 +22,7 @@ from uio import StringIO
 if globalVars.REGION == 'EU868':
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
 elif globalVars.REGION == 'AS923':
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=False, tx_power=14, tx_retries=1)
 
 lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
 
@@ -155,27 +156,35 @@ def lora_cb(lora):
                 payload = str(ubinascii.hexlify(frame).decode('utf-8'))
                 print("##### Receiving message" + payload + " Port: " + str(port))
                 if len(payload) > 1: 
-                    if payload[0:2] == '0a': # Add new devices to the whitelist
+                    if payload[0:2] == '0a': # Add new devices to the Whitelist
                         print("##### Message received of new device in whitelist, lenght: " + str(len(payload)/2));
-                        WhiteListNewDevice(payload[2:])
+                        whitelistTools.WhiteListNewDevice(payload[2:])
                         BeepBuzzer(2)
-                        # machine.reset()
-                    elif payload[0:2] == '0d': # Delete device from the whitelist
-                        WhiteListDeleteSpecificDevice(payload[2:])
+                    if payload[0:2] == '1a': # Add new devices to the BlackList
+                        print("##### Message received of new device in BlackList, lenght: " + str(len(payload)/2));
+                        blacklisttools.BlackListNewDevice(payload[2:])
                         BeepBuzzer(2)
-                        # machine.reset()
-                    elif payload[0:2] == 'fa': # Delete entire whitelist file
-                        WhiteListDeleteDevices()
+                    elif payload[0:2] == '0d': # Delete device from the WhiteList
+                        whitelistTools.WhiteListDeleteSpecificDevice(payload[2:])
                         BeepBuzzer(2)
-                    elif payload[0:2] == 'fb': # Delete entire buzzer file
+                    elif payload[0:2] == '1d': # Delete device from the BlackList
+                        blacklisttools.BlackListDeleteSpecificDevice(payload[2:])
+                        BeepBuzzer(2)
+                    elif payload[0:2] == 'fa': # Delete entire WhiteList file
+                        whitelistTools.WhiteListDeleteDevices()
+                        BeepBuzzer(2)
+                    elif payload[0:2] == 'fb': # Delete entire BlackList file
+                        blacklisttools.BlackListDeleteDevices()
+                        BeepBuzzer(2)
+                    elif payload[0:2] == 'fc': # Delete entire buzzer file
                         BuzzerListCleanDevices()
                         BeepBuzzer(2)
                         machine.reset()
-                    elif payload[0:2] == 'fc': # Delete entire sent file
+                    elif payload[0:2] == 'fd': # Delete entire sent file
                         LoRaWANSentListCleanDevices()
                         BeepBuzzer(2)
                         machine.reset()
-                    elif payload[0:2] == 'fd': # Delete entire NVS Memory
+                    elif payload[0:2] == 'fe': # Delete entire NVS Memory
                         pycom.nvs_erase_all()
                         BeepBuzzer(2)
                         machine.reset()
@@ -255,6 +264,10 @@ def UpdateConfigurationParameters(raw_payload):
                 print("Step CC - Setting BUZZER_COUNTER_ALARM to " + str(int(payload[2:6],16)))
                 pycom.nvs_set('buzcountalarm', int(payload[2:6],16))
                 globalVars.BUZZER_COUNTER_ALARM = int(payload[2:6],16)
+            if payload[0:2] == '28':
+                print("Step CC - Setting ALARM LIST TYPE to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('alarmlisttype', int(payload[2:6],16))
+                globalVars.ALARM_LIST_TYPE = int(payload[2:6],16)
     except BaseException as e:
         err = sys.print_exception(e, s)
         checkError("Step CC -  Error setting configuiration parameters: " + str(s.getvalue()))
@@ -277,7 +290,7 @@ def sendLoRaWANMessage():
         if lora.has_joined():
             sendAckMessageThread(lora_socket)
         else:
-            print("Impossible to send because device is not joined")
+            tools.debug("Impossible to send because device is not joined", 'v')
             join_lora()
             if lora.has_joined():
                 sendAckMessageThread(lora_socket)
@@ -287,15 +300,17 @@ def sendLoRaWANMessage():
 
 def sendAckMessageThread(lora_sck):
     try:
-        print("Starting Threading LoRaWAN messages ")
+        tools.debug("Starting Threading LoRaWAN messages ", 'v')
         if len(globalVars.lora_sent_devices) > 0: 
             for dev in globalVars.lora_sent_devices:
                 try:
+                    tools.debug("Start Threading, LoRaWAN message, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw) + " - DataLen: " + str(len(bytes(dev.raw))), 'vv')
                     lora_sck.send(bytes(dev.raw))
                     utime.sleep(2)
-                    print("Threading LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw))
-                except Exception as e1:
-                    print("Error sending message of device: " + str(dev.addr) + " - Error: " + str(e1))
+                    tools.debug("Finish Threading, LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw), 'vv')
+                except BaseException as e1:
+                    err = sys.print_exception(e1, s)
+                    checkError("Error sending message of device: " + str(dev.addr) + " - Error: " + str(s.getvalue()))
                 utime.sleep(8)
         
             globalVars.lora_sent_devices = []

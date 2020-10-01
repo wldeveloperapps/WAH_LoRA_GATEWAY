@@ -9,6 +9,9 @@ import pycom
 import ubinascii
 import tools
 import globalVars
+import sys
+from uio import StringIO
+s = StringIO()
 
 def WhiteListGetDevices():
     try:
@@ -23,27 +26,11 @@ def WhiteListGetDevices():
         f.close()
         #print("Whitelist already read")
         return 1, devices_whitelist
-    except Exception as e:
-        print("Step 0 - Error reading SD: " + str(e))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        print("Step 0 - Error reading SD: " + str(s.getvalue()))
         return 0, []
         
-
-# def WhiteListNewDevice(devString):
-#     try:
-#         print("##### Whitelist new device ")
-#         listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
-#         print("##### Creating registers in whitelist: " + str(listDevices))
-#         f = open('/sd/whitelist.csv', 'a')
-#         strToSave = ""
-#         for devDummy in listDevices:
-#             # TODO Check if the device already exists in the .csv
-#             strToSave = strToSave + str(str(devDummy) + "," + str(int(utime.time()))+ "\r\n")
-#             print("##### Including device in whitelist: " + str(strToSave))
-#         f.write(strToSave)
-#         f.close()
-#     except Exception as e:
-#         print("##### - Error writing new device in whitelist: " + str(e))
-#         return 6, "##### - Error writing new device in whitelist: " + str(e)
 
 def WhiteListNewDevice(devString):
     try:

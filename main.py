@@ -24,6 +24,20 @@ pkgSend = []
 ble_thread = False
 s = StringIO()
 
+# def uart_task():
+#     try:
+#         uart = UART(1, baudrate=9600, timeout_chars=2000)
+#         while True:
+#             data = uart.read(2000)
+#             if data != None:
+#                 print(data)
+#     except BaseException as e:
+#         err = sys.print_exception(e, s)
+#         checkError("Error thread UART Task: " + str(s.getvalue()))
+#     finally:
+#         ble_thread = False
+#         _thread.start_new_thread(uart_task,())
+
 def bluetooth_scanner():
     global ble_thread
     try:
@@ -43,7 +57,7 @@ def bluetooth_scanner():
                                 tools.debug('Step 1 - New device detected: ' + str(ubinascii.hexlify(adv.mac)),'vv')
                                 globalVars.mac_scanned.append(adv.mac)
                             if adv.rssi >= (int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256):  
-                                wilocMain.checkWhiteList(str(ubinascii.hexlify(adv.mac).decode('utf-8')))
+                                wilocMain.checkListType(str(ubinascii.hexlify(adv.mac).decode('utf-8')), globalVars.ALARM_LIST_TYPE)
                             globalVars.scanned_frames.append(Device(addr=adv.mac,rssi=adv.rssi, raw=data_raw))
 
                 tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())),'v')
@@ -67,9 +81,11 @@ try:
     sched = Scheduler()
     sched.start()
     tools.getResetCause()
-    wilocMain.forceConfigParameters()
+    # wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
+    # _thread.start_new_thread(uart_task,())
+    
     lorawan.join_lora()
     
     while True:
