@@ -289,12 +289,6 @@ def createPackageToSend(devs, frames):
         checkError("Step 5 - Error creating package to send", e1)
         return []
 
-def ForceBuzzerSound(duration):
-    try:
-        BeepBuzzer(duration)
-    except BaseException as e:
-        checkError("Error forcing buzzer", e)
-
 def checkTimeForStatistics(INTERVAL):
     try:
         tools.debug("Step 6 - Checking time for statistics",'vvv')
