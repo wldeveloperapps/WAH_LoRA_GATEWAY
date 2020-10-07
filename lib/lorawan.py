@@ -16,8 +16,7 @@ import pycom
 import _thread
 import gc
 import tools
-import sys
-from uio import StringIO
+
 
 if globalVars.REGION == 'EU868':
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
@@ -25,10 +24,6 @@ elif globalVars.REGION == 'AS923':
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=False, tx_power=14, tx_retries=1)
 
 lora_socket = socket.socket(socket.AF_LORA, socket.SOCK_RAW)
-
-strError = []
-flag_sent = False
-s = StringIO()
 
 def prepare_channels_as923(lora, channel, data_rate):
     AS923_FREQUENCIES = [
@@ -123,9 +118,7 @@ def joinLoRaWANModule(lora):
             # lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
             lora.nvram_save()
     except BaseException as e:
-        err = sys.print_exception(e, s)
-        checkError("Step 0.1 - Error initializaing LoRaWAN module: " + str(s.getvalue()))
-        # strError.append('3')
+        checkError("Step 0.1 - Error initializaing LoRaWAN module",e)
 
 def initLoRaWANSocket(lora_socket, lora):
     try:
@@ -136,9 +129,7 @@ def initLoRaWANSocket(lora_socket, lora):
         lora.callback(trigger=( LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT | LoRa.TX_FAILED_EVENT  ), handler=lora_cb)
         lora_socket.setblocking(True)
     except BaseException as e:
-        err = sys.print_exception(e, s)
-        checkError("Step 0.2 - Error initializaing LoRaWAN Sockets: " + str(s.getvalue()))
-        # strError.append('2')
+        checkError("Step 0.2 - Error initializaing LoRaWAN Sockets", e)
 
 def lora_cb(lora):
     global lora_socket
@@ -153,80 +144,95 @@ def lora_cb(lora):
                     frame, port = lora_socket.recvfrom(256) # longuest frame is +-220
                 except Exception as e2:
                     print("Error downlink: " + str(e2))
-                payload = str(ubinascii.hexlify(frame).decode('utf-8'))
-                print("##### Receiving message" + payload + " Port: " + str(port))
-                if len(payload) > 1: 
-                    if payload[0:2] == '0a': # Add new devices to the Whitelist
-                        print("##### Message received of new device in whitelist, lenght: " + str(len(payload)/2));
-                        whitelistTools.WhiteListNewDevice(payload[2:])
-                        BeepBuzzer(2)
-                    if payload[0:2] == '1a': # Add new devices to the BlackList
-                        print("##### Message received of new device in BlackList, lenght: " + str(len(payload)/2));
-                        blacklisttools.BlackListNewDevice(payload[2:])
-                        BeepBuzzer(2)
-                    elif payload[0:2] == '0d': # Delete device from the WhiteList
-                        whitelistTools.WhiteListDeleteSpecificDevice(payload[2:])
-                        BeepBuzzer(2)
-                    elif payload[0:2] == '1d': # Delete device from the BlackList
-                        blacklisttools.BlackListDeleteSpecificDevice(payload[2:])
-                        BeepBuzzer(2)
-                    elif payload[0:2] == 'fa': # Delete entire WhiteList file
-                        whitelistTools.WhiteListDeleteDevices()
-                        BeepBuzzer(2)
-                    elif payload[0:2] == 'fb': # Delete entire BlackList file
-                        blacklisttools.BlackListDeleteDevices()
-                        BeepBuzzer(2)
-                    elif payload[0:2] == 'fc': # Delete entire buzzer file
-                        BuzzerListCleanDevices()
-                        BeepBuzzer(2)
-                        machine.reset()
-                    elif payload[0:2] == 'fd': # Delete entire sent file
-                        LoRaWANSentListCleanDevices()
-                        BeepBuzzer(2)
-                        machine.reset()
-                    elif payload[0:2] == 'fe': # Delete entire NVS Memory
-                        pycom.nvs_erase_all()
-                        BeepBuzzer(2)
-                        machine.reset()
-                    elif payload[0:2] == 'cc': # Change configuration parameters
-                        UpdateConfigurationParameters(payload[2:])
-                        BeepBuzzer(2)
-                        # machine.reset()
-                    elif payload[0:2] == 'd0': # Syncronize RTC
-                        forceRTC(int(payload[2:10],16))
-                        pycom.nvs_set('rtc', int(payload[2:10],16))
-                        utime.sleep(5)
-                        dt = pycom.nvs_get('rtc')
-                        print("Step SYNCRO - Syncronized RTC from Server to " + str(dt))
-                        BeepBuzzer(2)
-                    elif payload[0:2] == 'dc': # Change Debug Mode
-                        dummy = int(payload[2:4],16)
-                        print("Change debug mode: " + str(dummy))
-                        if dummy == 0:
-                            globalVars.debug_cc = ''
-                        elif dummy == 1:
-                            globalVars.debug_cc = 'v'
-                        elif dummy == 2:
-                            globalVars.debug_cc = 'vv'
-                        elif dummy == 3:
-                            globalVars.debug_cc = 'vvv'
-                        print("Mode changed to: " + str(globalVars.debug_cc))
-                        BeepBuzzer(2)
-                    elif payload[0:2] == 'b0': # Force Alarm
-                        BeepBuzzer(int(payload[2:4],16))
-                    elif payload[0:2] == 'b1': # Foce GPS Acquisition
-                        pycom.nvs_set('laststatsreport', str(0))
-                    else:
-                        print("##### Message received other code: " + str(payload[0:2]) + " Lenght: " + str(len(payload)/2))
-
+                
+                checkFrameConfiguration(frame, "LoRaWAN")
         if events & LoRa.TX_PACKET_EVENT:
             print("tx_time_on_air: " + str(lora.stats().tx_time_on_air) + " ms @dr: " + str(lora.stats().sftx))
             # BeepBuzzer(0.5)
         if events & LoRa.TX_FAILED_EVENT:
             print("#### Error TxEvent ####")
     except BaseException as e:
-        err = sys.print_exception(e, s)
-        checkError("Step DL - Error managing downlink: " + str(s.getvalue()))
+        checkError("Step DL - Error managing downlink", e)
+
+def checkFrameConfiguration(frame, port):
+    try:
+        if port == "LoRaWAN":
+            payload = str(ubinascii.hexlify(frame).decode('utf-8'))
+        else:
+            payload = str(frame.decode('utf-8'))
+
+        print("##### Receiving message: " + str(payload) + " - Frame: " + str(frame) +  " Port: " + str(port))
+        if len(payload) > 1: 
+            if str(payload[0:2]) == 'a0': # Add new devices to the Whitelist
+                print("##### Message received of new device in whitelist, lenght: " + str(len(str(payload))/2))
+                whitelistTools.WhiteListNewDevice(str(payload[2:]))
+                BeepBuzzer(2)
+            if str(payload[0:2]) == 'a1': # Add new devices to the BlackList
+                print("##### Message received of new device in BlackList, lenght: " + str(len(str(payload))/2))
+                blacklisttools.BlackListNewDevice(str(payload[2:]))
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'd0': # Delete device from the WhiteList
+                whitelistTools.WhiteListDeleteSpecificDevice(str(payload[2:]))
+                BeepBuzzer(2)
+            elif str(payload[0:2])== 'd1': # Delete device from the BlackList
+                blacklisttools.BlackListDeleteSpecificDevice(str(payload[2:]))
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'd2': # Delete entire WhiteList file
+                whitelistTools.WhiteListDeleteDevices()
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'd3': # Delete entire BlackList file
+                blacklisttools.BlackListDeleteDevices()
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'd4': # Delete entire buzzer file
+                BuzzerListCleanDevices()
+                BeepBuzzer(2)
+                machine.reset()
+            elif str(payload[0:2]) == 'd5': # Delete entire sent file
+                LoRaWANSentListCleanDevices()
+                BeepBuzzer(2)
+                machine.reset()
+            elif str(payload[0:2]) == 'd6': # Delete entire NVS Memory
+                pycom.nvs_erase_all()
+                BeepBuzzer(2)
+                machine.reset()
+            elif str(payload[0:2]) == 'cc': # Change configuration parameters
+                UpdateConfigurationParameters(str(payload[2:]))
+                BeepBuzzer(2)
+                # machine.reset()
+            elif str(payload[0:2]) == 'c0': # Syncronize RTC
+                forceRTC(int(payload[2:10],16))
+                pycom.nvs_set('rtc', int(payload[2:10],16))
+                utime.sleep(5)
+                dt = pycom.nvs_get('rtc')
+                print("Step SYNCRO - Syncronized RTC from Server to " + str(dt))
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'cd': # Change Debug Mode
+                dummy = int(payload[2:4],16)
+                print("Change debug mode: " + str(dummy))
+                if dummy == 0:
+                    globalVars.debug_cc = ''
+                elif dummy == 1:
+                    globalVars.debug_cc = 'v'
+                elif dummy == 2:
+                    globalVars.debug_cc = 'vv'
+                elif dummy == 3:
+                    globalVars.debug_cc = 'vvv'
+                print("Mode changed to: " + str(globalVars.debug_cc))
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'fa': # Force Alarm
+                BeepBuzzer(int(payload[2:4],16))
+            elif str(payload[0:2]) == 'f0': # Foce GPS Acquisition
+                pycom.nvs_set('laststatsreport', str(0))
+            elif str(payload[0:2]) == 'f1': # Foce Reset
+                machine.reset()
+            elif str(payload[0:2]) == 'f2': # Foce Sleep
+                tools.deepSleepWiloc(str(payload[2:8]))
+            elif str(payload[0:2]) == "ff":
+                tools.systemCommands(str(payload[2:]))
+            else:
+                print("##### Message received other code: " + str(payload[0:2]) + " Lenght: " + str(len(payload)/2))
+    except BaseException as e4:
+        checkError("Step DL - Error managing downlink", e4)
 
 def UpdateConfigurationParameters(raw_payload):
     try:
@@ -269,8 +275,7 @@ def UpdateConfigurationParameters(raw_payload):
                 pycom.nvs_set('alarmlisttype', int(payload[2:6],16))
                 globalVars.ALARM_LIST_TYPE = int(payload[2:6],16)
     except BaseException as e:
-        err = sys.print_exception(e, s)
-        checkError("Step CC -  Error setting configuiration parameters: " + str(s.getvalue()))
+        checkError("Step CC -  Error setting configuiration parameters", e)
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
 
 def join_lora():
@@ -281,8 +286,7 @@ def join_lora():
         initLoRaWANSocket(lora_socket, lora)
         utime.sleep(1)
     except BaseException as e:
-        err = sys.print_exception(e, s)
-        checkError("Error joining LoRa Network: " + str(s.getvalue()))
+        checkError("Error joining LoRa Network",e)
 
 def sendLoRaWANMessage():
     global lora_socket
@@ -295,8 +299,8 @@ def sendLoRaWANMessage():
             if lora.has_joined():
                 sendAckMessageThread(lora_socket)
     except BaseException as eee:
-        err = sys.print_exception(eee, s)
-        checkError("Error sending LoRaWAN message: " + str(s.getvalue()))
+
+        checkError("Error sending LoRaWAN message",eee)
 
 def sendAckMessageThread(lora_sck):
     try:
@@ -304,18 +308,16 @@ def sendAckMessageThread(lora_sck):
         if len(globalVars.lora_sent_devices) > 0: 
             for dev in globalVars.lora_sent_devices:
                 try:
-                    tools.debug("Start Threading, LoRaWAN message, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw) + " - DataLen: " + str(len(bytes(dev.raw))), 'vv')
+                    # tools.debug("Start Threading, LoRaWAN message, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw) + " - DataLen: " + str(len(bytes(dev.raw))), 'vv')
                     lora_sck.send(bytes(dev.raw))
                     utime.sleep(2)
                     tools.debug("Finish Threading, LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw), 'vv')
                 except BaseException as e1:
-                    err = sys.print_exception(e1, s)
-                    checkError("Error sending message of device: " + str(dev.addr) + " - Error: " + str(s.getvalue()))
+                    checkError("Error sending message of device: " + str(dev.addr), e1)
                 utime.sleep(8)
         
             globalVars.lora_sent_devices = []
         
     except BaseException as eee:
-        err = sys.print_exception(eee, s)
-        checkError("Error Threading LoRaWAN payload: " + str(s.getvalue()))
+        checkError("Error Threading LoRaWAN payload",eee)
 

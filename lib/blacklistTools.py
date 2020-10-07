@@ -22,7 +22,10 @@ def BlackListGetDevices():
         f.close()
         return 1, devices_blacklist
     except Exception as e:
-        print("Step 0 - Error reading SD: " + str(e))
+        print("Step 0 - Error reading get blacklist SD: " + str(e))
+        if "ENOENT" in str(e):
+            with open('/sd/blacklist.csv', 'a') as out:
+                out.write('0,0\r\n')
         return 0, []
         
 

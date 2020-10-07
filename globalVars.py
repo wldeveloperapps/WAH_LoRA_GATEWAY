@@ -19,10 +19,11 @@ LORA_CHANNEL = 1
 LORA_NODE_DR = 4
 REGION = 'AS923'
 # REGION = 'EU868'
-
+MAC_TYPE='LORA'
+# MAC_TYPE='BLE'
 
 # ------ Debug -------------
-debug_cc = "vv"
+debug_cc = "vvv"
 
 # ------ Timers -----------
 

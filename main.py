@@ -1,6 +1,6 @@
 from network import Bluetooth
 from lib.beacon import Device
-from errorissuer import checkError
+from errorissuer import checkError, checkWarning
 from scheduler import Scheduler
 import rtcmgt
 import machine
@@ -12,8 +12,7 @@ import tools
 import globalVars
 import lorawan
 import _thread
-import sys
-from uio import StringIO
+from machine import UART
 
 # -------------------------
 scanned_frames = []
@@ -22,21 +21,22 @@ statSend = []
 pkgSend = []
 # -------------------------
 ble_thread = False
-s = StringIO()
 
-# def uart_task():
-#     try:
-#         uart = UART(1, baudrate=9600, timeout_chars=2000)
-#         while True:
-#             data = uart.read(2000)
-#             if data != None:
-#                 print(data)
-#     except BaseException as e:
-#         err = sys.print_exception(e, s)
-#         checkError("Error thread UART Task: " + str(s.getvalue()))
-#     finally:
-#         ble_thread = False
-#         _thread.start_new_thread(uart_task,())
+def uart_task():
+    try:
+        uart = UART(0, 115200)                         # init with given baudrate
+        while True:
+            data = uart.read(1024)
+            if data != None:
+                # arr_tmp = [str(data.decode('utf-8'))[i:i+2] for i in range(0, len(str(data.decode('utf-8'))), 2)]
+                tools.debug("Serial received: "+ str(data.decode('utf-8')), "v")
+                lorawan.checkFrameConfiguration(data,"Serial-0")
+    except BaseException as e:
+        checkError("Error thread UART Task",e)
+    finally:
+        ble_thread = False
+        checkWarning("Finally thread UART Task")
+        _thread.start_new_thread(uart_task,())
 
 def bluetooth_scanner():
     global ble_thread
@@ -51,30 +51,33 @@ def bluetooth_scanner():
                     adv = bluetooth.get_adv()
                     if adv:
                         if 'WILOC_01' in str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)):
-                            data_raw = str(ubinascii.hexlify(adv.data))
-                            tools.debug('Name: '+ str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)) +' MAC: '+ str(ubinascii.hexlify(adv.mac))+ ' RSSI: ' + str(adv.rssi) + ' DT: '+ str(int(utime.time())) +' RAW: ' + data_raw,'vvv')
-                            if adv.mac not in globalVars.mac_scanned:
-                                tools.debug('Step 1 - New device detected: ' + str(ubinascii.hexlify(adv.mac)),'vv')
-                                globalVars.mac_scanned.append(adv.mac)
+                            data_raw = str(ubinascii.hexlify(adv.data).decode('utf-8'))
+                            if globalVars.MAC_TYPE == "LORA":
+                                mac_proc = data_raw[34:50] # LoRa MAC
+                            elif globalVars.MAC_TYPE == "BLE":
+                                mac_proc = str(ubinascii.hexlify(adv.mac).decode('utf-8')) # MAC BLE
+                            tools.debug('Name: '+ str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)) +' MAC: '+ str(mac_proc)+ ' RSSI: ' + str(adv.rssi) + ' DT: '+ str(int(utime.time())) +' RAW: ' + data_raw,'vvv')
+                            if mac_proc not in globalVars.mac_scanned:
+                                tools.debug('Step 1 - New device detected: ' + str(mac_proc),'vv')
+                                globalVars.mac_scanned.append(mac_proc)
                             if adv.rssi >= (int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256):  
-                                wilocMain.checkListType(str(ubinascii.hexlify(adv.mac).decode('utf-8')), globalVars.ALARM_LIST_TYPE)
-                            globalVars.scanned_frames.append(Device(addr=adv.mac,rssi=adv.rssi, raw=data_raw))
+                                wilocMain.checkListType(str(mac_proc), globalVars.ALARM_LIST_TYPE)
+                            globalVars.scanned_frames.append(Device(addr=mac_proc,rssi=adv.rssi, raw=data_raw))
 
                 tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())),'v')
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
             except BaseException as ee1:
-                err = sys.print_exception(ee1, s)
-                checkError("Error scanning Bluetooth: " + str(s.getvalue()))
+                checkError("Error scanning Bluetooth",ee1)
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
     except BaseException as e:
-        err = sys.print_exception(e, s)
-        checkError("Error thread Bluetooth: " + str(s.getvalue()))
+        checkError("Error thread Bluetooth", e)
         ble_thread = False
     finally:
         ble_thread = False
         _thread.start_new_thread(bluetooth_scanner,())
 
 try:
+    _thread.start_new_thread(uart_task,())
     rtcmgt.initRTC()
     tools.debug("Step 0 - Starting Main program on " + str(ubinascii.hexlify(machine.unique_id()).decode('utf-8')) + ' - Time: ' + str((int(utime.time()))),'v')
     pycom.nvs_set('laststatsreport', str(0)) # Force a statistics report on every reset
@@ -84,7 +87,7 @@ try:
     # wilocMain.forceConfigParameters()
     wilocMain.loadConfigParameters()
     wilocMain.loadSDCardData()
-    # _thread.start_new_thread(uart_task,())
+    
     
     lorawan.join_lora()
     
@@ -114,18 +117,16 @@ try:
                     lorawan.sendLoRaWANMessage()
             else:
                 sched.checkNextReset()
-                wilocMain.sleepProcess()
+                tools.sleepProcess()
             
         except BaseException as eee:
-            err = sys.print_exception(eee, s)
-            checkError("Main Task Error: " + str(s.getvalue()))
-            wilocMain.sleepProcess()
+            checkError("Main Task Error",eee)
+            tools.sleepProcess()
 
 except BaseException as e:
-    err = sys.print_exception(e, s)
-    checkError("Main Thread Error: " + str(s.getvalue()))
+    checkError("Main Thread Error",e)
 finally:
-    checkError("Main thread finishing for unexpected error: ")
+    checkWarning("Main thread finishing for unexpected error")
     pycom.nvs_set('rtc', str(int(utime.time())))
     utime.sleep(10)
     machine.reset()

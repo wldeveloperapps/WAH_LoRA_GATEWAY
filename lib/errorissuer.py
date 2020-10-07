@@ -23,18 +23,33 @@
 # Code 21: Error Filtering RSSI values
 import machine
 import utime
+import sys
+from uio import StringIO
 
-def checkError(message):
+def checkWarning(message):
     try:
-        print("Error control: " +str(message))
-        saveErrorInFlash(message)
+        print("Warning control: " +str(message))
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        saveErrorInFlash("Error managing warning issuer: " + str(s.getvalue()))
         utime.sleep(5)
-        if 'I2C bus error' in str(message):
+        machine.reset()  
+
+def checkError(type_msg ,message):
+    try:
+        s = StringIO()
+        err = sys.print_exception(message, s)
+        msg_complete = str(type_msg) + " - " + str(s.getvalue())
+        print("Error control: " +str(msg_complete))
+        saveErrorInFlash(str(type_msg)+ str(msg_complete))
+        utime.sleep(5)
+        if 'I2C bus error' in str(msg_complete):
             machine.reset()
-        if 'memory' in str(message):
+        if 'memory' in str(msg_complete):
             machine.reset()     
-    except Exception as e:
-        saveErrorInFlash("Error managing error issuer")
+    except BaseException as e:
+        err = sys.print_exception(e, s)
+        saveErrorInFlash("Error managing error issuer: " + str(s.getvalue()))
         utime.sleep(5)
         machine.reset()
 
@@ -48,3 +63,4 @@ def saveErrorInFlash(strError):
 
     except Exception as e:
         print("Error saving error: " + str(e))
+

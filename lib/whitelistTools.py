@@ -28,7 +28,10 @@ def WhiteListGetDevices():
         return 1, devices_whitelist
     except BaseException as e:
         err = sys.print_exception(e, s)
-        print("Step 0 - Error reading SD: " + str(s.getvalue()))
+        print("Step 0 - Error reading get whitelist SD: " + str(s.getvalue()))
+        if "ENOENT" in str(e):
+            with open('/sd/whitelist.csv', 'a') as out:
+                out.write('0,0\r\n')
         return 0, []
         
 
