@@ -3,7 +3,6 @@ from lib.blacklistTools import BlackListGetDevices
 from lib.loRaReportsTools import LoRaWANListSentDevices, LoRaWANSentListUpdateDevice
 from lib.buzzerTools import BeepBuzzer
 from lib.beacon import Device, DeviceFilter
-
 from errorissuer import checkError, checkWarning
 import ubinascii
 import utime
@@ -15,6 +14,7 @@ import pycom
 import globalVars
 import lorawan
 import _thread
+import rtcmgt
 
 # ---------- TODO -------------
 #  Sleep schedule by RTC syncronization by GPS
@@ -239,7 +239,7 @@ def createPackageToSend(devs, frames):
             strToSend.append(st_bat[3])
             
             mac_proc = [dd.addr[i:i+2] for i in range(0, len(dd.addr), 2)]
-            tools.debug("Getting MAC bytes of : " + str(mac_proc) ,'vv')
+            tools.debug("Getting MAC bytes of : " + str(mac_proc) ,'vvv')
             for bmac in mac_proc:
                 strToSend.append(int(bmac,16))
             # tools.debug("Getting last location of : " + str(dd.addr),'vv')
@@ -302,10 +302,10 @@ def checkTimeForStatistics(INTERVAL):
             last_report = ts
         # tools.debug("Test 2",'vvv')
         if (int(last_report) + int(INTERVAL)) < ts:
-            pycom.nvs_set('rtc', str(int(utime.time())))
+            rtcmgt.updateRTC()
             return True
         else:
-            tools.debug("Step 6 - No statistics reports yet, WhiteList: " + str(len(globalVars.devices_whitelist)) + " - remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
+            tools.debug("Step 6 - No statistics reports yet, WhiteList: " + str(len(globalVars.devices_whitelist)) + " - BlackList: " + str(len(globalVars.devices_blacklist)) +" - remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
             return False
     except BaseException as e:
         checkError("Error checking time for statistics", e)
@@ -419,6 +419,7 @@ def checkTimeToSend(interval):
         ts = int(utime.time())
         if (globalVars.last_lora_sent + int(interval)) < ts: 
             globalVars.last_lora_sent = ts
+            rtcmgt.updateRTC()
             return True
         else:
             tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)) + " - Store devices: " + str(len(globalVars.lora_sent_devices)),"v")

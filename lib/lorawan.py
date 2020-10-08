@@ -200,10 +200,10 @@ def checkFrameConfiguration(frame, port):
                 BeepBuzzer(2)
                 # machine.reset()
             elif str(payload[0:2]) == 'c0': # Syncronize RTC
-                forceRTC(int(payload[2:10],16))
-                pycom.nvs_set('rtc', int(payload[2:10],16))
+                forceRTC(int(payload[2:10],16), "epoch")
+                pycom.nvs_set('rtc_dt', int(payload[2:10],16))
                 utime.sleep(5)
-                dt = pycom.nvs_get('rtc')
+                dt = pycom.nvs_get('rtc_dt')
                 print("Step SYNCRO - Syncronized RTC from Server to " + str(dt))
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'cd': # Change Debug Mode

@@ -11,17 +11,15 @@ import utime
 import ubinascii
 import machine
 import globalVars
+import struct
 import gc
 from errorissuer import checkError
 import sys
 from uio import StringIO
-from machine import WDT
+from machine import WDT, RTC
 # ---------------
 
 try:
-    gc.enable()
-    s = StringIO()
-    wdt = WDT(timeout=360000)
     if globalVars.deviceID == 2:
         from pytrack import Pytrack
         from L76GNSS import L76GNSS
@@ -36,8 +34,57 @@ try:
         acc = LIS2HH12(py)
         si = SI7006A20(py)
 
+    gc.enable()
+    s = StringIO()
+    wdt = WDT(timeout=360000)
+    # ret = initModule()
+    # if ret < 0:
+    #     ret_1 = initModule()
+    #     if ret1 < 0:
+    #         ret_2 = initModule()
 except BaseException as e:
     checkError("Error initializing tools", e)
+    if globalVars.deviceID == 2:
+        from pytrack import Pytrack
+        from L76GNSS import L76GNSS
+        from LIS2HH12 import LIS2HH12
+        py = Pytrack()
+        acc = LIS2HH12()
+    else:
+        from pysense import Pysense
+        from SI7006A20 import SI7006A20
+        from LIS2HH12 import LIS2HH12
+        py = Pysense()
+        acc = LIS2HH12(py)
+        si = SI7006A20(py)
+
+    gc.enable()
+    s = StringIO()
+    wdt = WDT(timeout=360000)
+
+# def initModule():
+#     try:
+#         if globalVars.deviceID == 2:
+#             from pytrack import Pytrack
+#             from L76GNSS import L76GNSS
+#             from LIS2HH12 import LIS2HH12
+#             py = Pytrack()
+#             acc = LIS2HH12()
+#         else:
+#             from pysense import Pysense
+#             from SI7006A20 import SI7006A20
+#             from LIS2HH12 import LIS2HH12
+#             py = Pysense()
+#             acc = LIS2HH12(py)
+#             si = SI7006A20(py)
+
+#         gc.enable()
+#         s = StringIO()
+#         wdt = WDT(timeout=360000)
+#         return 0
+#     except BaseException as e:
+#         checkError("Error initializing tools module", e)
+#         return -1
 
 def isInList(device, dmList):
     for dev in dmList:
@@ -109,8 +156,11 @@ def sleepProcess():
 
 def deepSleepWiloc(period):
     try:
-        py.setup_sleep(period)
+        debug("Forcing DeepSleep for " + str(int(period,16)) + " seconds","v")
+        utime.sleep(2)
+        py.setup_sleep(int(period,16))
         py.go_to_sleep()
+        machine.deepsleep(int(period,16))
     except BaseException as e:
         checkError("Error going to light sleep",e)
 
@@ -203,7 +253,9 @@ def getGPS():
             big_endian_longitude = bytearray(struct.pack(">I", int(coord['longitude']*1000000))) 
             dt = l76.getUTCDateTimeTuple(debug=True)
             if dt is not None:
-                forceRTC(dt)
+                forceRTC(dt, "tuple")
+                debug("Updating timestamp from GPS - " + str(utime.time()) + " - GMT: " + str(utime.gmtime()), "v")
+            
             debug("HDOP: " + str(coord['HDOP']) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
             if float(str(coord['HDOP'])) > float(globalVars.min_hdop):
                 return None,None
@@ -229,3 +281,5 @@ def template(dev):
         debug("", "")
     except BaseException as e:
         checkError("Error going to light sleep",e)
+
+

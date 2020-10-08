@@ -38,7 +38,11 @@ def WhiteListGetDevices():
 def WhiteListNewDevice(devString):
     try:
         print("##### Whitelist new device ")
-        listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
+        if globalVars.MAC_TYPE == "LORA":
+            listDevices = [devString[i:i+16] for i in range(0, len(devString), 16)]
+        elif globalVars.MAC_TYPE == "BLE":
+            listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
+
         print("##### Creating registers in whitelist: " + str(listDevices))
         f = open('/sd/whitelist.csv', 'r')
         white_lines = f.readlines()
@@ -52,7 +56,7 @@ def WhiteListNewDevice(devString):
                         exists = True
                         break
                 if exists == False:
-                    white_lines.append(str(str(dev) + "," + str(int(utime.time()))+ "\r\n"))
+                    white_lines.append(str(str(dev).lower() + "," + str(int(utime.time()))+ "\r\n"))
 
             for ln in white_lines:
                 out.write(ln)

@@ -96,7 +96,6 @@ try:
             if ble_thread == False:
                 _thread.start_new_thread(bluetooth_scanner,())
 
-            rtcmgt.updateRTC()
             tools.sleepWiloc(int(globalVars.BLE_SCAN_PERIOD))
             if len(globalVars.scanned_frames) > 0:
                 dummy_list = wilocMain.rssiFilterDevices(globalVars.RSSI_NEAR_THRESHOLD,globalVars.mac_scanned, globalVars.scanned_frames)
@@ -127,6 +126,6 @@ except BaseException as e:
     checkError("Main Thread Error",e)
 finally:
     checkWarning("Main thread finishing for unexpected error")
-    pycom.nvs_set('rtc', str(int(utime.time())))
+    rtcmgt.updateRTC()
     utime.sleep(10)
     machine.reset()

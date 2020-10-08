@@ -32,7 +32,11 @@ def BlackListGetDevices():
 def BlackListNewDevice(devString):
     try:
         print("##### Blacklist new device ")
-        listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
+        if globalVars.MAC_TYPE == "LORA":
+            listDevices = [devString[i:i+16] for i in range(0, len(devString), 16)]
+        elif globalVars.MAC_TYPE == "BLE":
+            listDevices = [devString[i:i+12] for i in range(0, len(devString), 12)]
+
         print("##### Creating registers in blacklist: " + str(listDevices))
         f = open('/sd/blacklist.csv', 'r')
         black_lines = f.readlines()
@@ -46,13 +50,14 @@ def BlackListNewDevice(devString):
                         exists = True
                         break
                 if exists == False:
-                    black_lines.append(str(str(dev) + "," + str(int(utime.time()))+ "\r\n"))
+                    black_lines.append(str(str(dev).lower() + "," + str(int(utime.time()))+ "\r\n"))
 
             for ln in black_lines:
                 out.write(ln)
-                lstDummy.append(ln.split(',')[0])
+                lstDummy.append(ln.split(',')[0].lower())
 
             globalVars.devices_blacklist = lstDummy
+
         tools.debug("New blacklist inserted: " + str(globalVars.devices_blacklist),'vv')
     except Exception as e:
         print("##### - Error writing new device in blacklist: " + str(e))  
