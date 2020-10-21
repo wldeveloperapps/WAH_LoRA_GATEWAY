@@ -12,6 +12,7 @@ import ubinascii
 import machine
 import globalVars
 import struct
+import pycom
 import gc
 from errorissuer import checkError
 import sys
@@ -37,11 +38,6 @@ try:
     gc.enable()
     s = StringIO()
     wdt = WDT(timeout=360000)
-    # ret = initModule()
-    # if ret < 0:
-    #     ret_1 = initModule()
-    #     if ret1 < 0:
-    #         ret_2 = initModule()
 except BaseException as e:
     checkError("Error initializing tools", e)
     if globalVars.deviceID == 2:
@@ -61,30 +57,6 @@ except BaseException as e:
     gc.enable()
     s = StringIO()
     wdt = WDT(timeout=360000)
-
-# def initModule():
-#     try:
-#         if globalVars.deviceID == 2:
-#             from pytrack import Pytrack
-#             from L76GNSS import L76GNSS
-#             from LIS2HH12 import LIS2HH12
-#             py = Pytrack()
-#             acc = LIS2HH12()
-#         else:
-#             from pysense import Pysense
-#             from SI7006A20 import SI7006A20
-#             from LIS2HH12 import LIS2HH12
-#             py = Pysense()
-#             acc = LIS2HH12(py)
-#             si = SI7006A20(py)
-
-#         gc.enable()
-#         s = StringIO()
-#         wdt = WDT(timeout=360000)
-#         return 0
-#     except BaseException as e:
-#         checkError("Error initializing tools module", e)
-#         return -1
 
 def isInList(device, dmList):
     for dev in dmList:
@@ -229,6 +201,13 @@ def systemCommands(data):
         elif data[:2] == "f0":
             debug(" --- Force deep sleep done successful --- ", "v")
             deepSleepWiloc(int(data[2:]))
+        elif data[:2] == "aa":
+            debug(" --- Testing DAC --- ", "v")
+            dac = machine.DAC('P10')
+            # dac.tone(1000,0)
+            dac.write(1)
+            time.sleep(1)
+            dac.write(0)
         else:
             debug(" --- Manual command not recognise --- ", "v")
     except BaseException as e:
@@ -275,6 +254,86 @@ def feedWatchdog():
         wdt.feed()
     except BaseException as e:
         checkError("Error feeding watchdog", e)
+
+def loadConfigParameters():
+    try:
+        try:
+            globalVars.BLE_SCAN_PERIOD = pycom.nvs_get('blescanperiod')
+            debug("Step 0.5 - BLE_SCAN_PERIOD: " + str(globalVars.BLE_SCAN_PERIOD),'v')
+        except BaseException as e:
+            pycom.nvs_set('blescanperiod', globalVars.BLE_SCAN_PERIOD)
+            checkError("BLE_SCAN_PERIOD error", e)
+
+        try:
+            globalVars.MAX_REFRESH_TIME = pycom.nvs_get('maxrefreshtime')
+            debug("Step 0.5 - MAX_REFRESH_TIME: " + str(globalVars.MAX_REFRESH_TIME),'v')
+        except BaseException as e:
+            pycom.nvs_set('maxrefreshtime', globalVars.MAX_REFRESH_TIME)
+            checkError("MAX_REFRESH_TIME error", e) 
+        try:
+            globalVars.STANDBY_PERIOD = pycom.nvs_get('standbyperiod')
+            debug("Step 0.5 - STANDBY_PERIOD: " + str(globalVars.STANDBY_PERIOD),'v')
+        except BaseException as e:
+            pycom.nvs_set('standbyperiod', globalVars.STANDBY_PERIOD)
+            checkError("STANDBY_PERIOD error", e)
+
+        try:
+            globalVars.RSSI_NEAR_THRESHOLD = pycom.nvs_get('rssithreshold')
+            debug("Step 0.5 - RSSI_NEAR_THRESHOLD: " + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256),'v')
+        except BaseException as e:
+            pycom.nvs_set('rssithreshold', str(globalVars.RSSI_NEAR_THRESHOLD))
+            checkError("RSSI_NEAR_THRESHOLD error", e)
+
+        try:
+            globalVars.BUZZER_DURATION = pycom.nvs_get('buzzerduration')
+            debug("Step 0.5 - BUZZER_DURATION: " + str(globalVars.BUZZER_DURATION),'v')
+        except BaseException as e:
+            pycom.nvs_set('buzzerduration', str(globalVars.BUZZER_DURATION))
+            checkError("BUZZER_DURATION error", e)
+        
+        try:
+            globalVars.STATISTICS_REPORT_INTERVAL = pycom.nvs_get('statsinterval')
+            debug("Step 0.5 - STATISTICS_REPORT_INTERVAL: " + str(globalVars.STATISTICS_REPORT_INTERVAL),'v')
+        except BaseException as e:
+            pycom.nvs_set('statsinterval', globalVars.STATISTICS_REPORT_INTERVAL)
+            checkError("STATISTICS_REPORT_INTERVAL error", e)
+
+        try:
+            globalVars.SENT_PERIOD = pycom.nvs_get('lorasentperiod')
+            debug("Step 0.5 - SENT_PERIOD: " + str(globalVars.SENT_PERIOD),'v')
+        except BaseException as e:
+            pycom.nvs_set('lorasentperiod', globalVars.SENT_PERIOD)
+            checkError("SENT_PERIOD error", e)
+
+        try:
+            globalVars.BUZZER_COUNTER_ALARM = pycom.nvs_get('buzcountalarm')
+            debug("Step 0.5 - BUZZER_COUNTER_ALARM: " + str(globalVars.BUZZER_COUNTER_ALARM),'v')
+        except BaseException as e:
+            pycom.nvs_set('buzcountalarm', globalVars.BUZZER_COUNTER_ALARM)
+            checkError("BUZZER_COUNTER_ALARM error", e)
+
+        try:
+            globalVars.ALARM_LIST_TYPE = pycom.nvs_get('alarmlisttype')
+            debug("Step 0.5 - ALARM_LIST_TYPE: " + str(globalVars.ALARM_LIST_TYPE),'v')
+        except BaseException as e:
+            pycom.nvs_set('alarmlisttype', globalVars.ALARM_LIST_TYPE)
+            checkError("ALARM_LIST_TYPE error", e)
+        
+        try:
+            globalVars.REGION = pycom.nvs_get('loraregion')
+            debug("Step 0.5 - LoRaWAN REGION: " + str(globalVars.REGION),'v')
+        except BaseException as e:
+            pycom.nvs_set('loraregion', globalVars.REGION)
+            checkError("LoRaWAN REGION error", e)
+    except BaseException as e1:
+        checkError("Step 18 - Error loading config parameters",e1) 
+
+def resetDevice(dev):
+    try:
+        debug("Resetting device manually", "vv")
+        machine.reset()
+    except BaseException as e:
+        checkError("Error going to light sleep",e)
 
 def template(dev):
     try:

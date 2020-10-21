@@ -6,7 +6,7 @@ import ubinascii
 import machine
 import _thread
 
-# dac = machine.DAC('P22')
+
 p_out = Pin('P10', mode=Pin.OUT)
 buzzer_lines = []
 flag_buzzer = False
@@ -36,6 +36,7 @@ def BuzzerThread(duration):
             utime.sleep(duration)
             flag_buzzer = False
         # _thread.exit()
+        
     except Exception as e:
         print("Error threading buzzering: " + str(e))
 

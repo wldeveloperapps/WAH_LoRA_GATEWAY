@@ -110,11 +110,11 @@ def joinLoRaWANModule(lora):
             elif globalVars.REGION == 'EU868':
                 prepare_channels_eu868(lora, globalVars.LORA_CHANNEL,  globalVars.LORA_NODE_DR)
 
-            print('Step 0.1 - Over the air network activation ... ', end='')
+            print('Step 0.1 - Over the air network activation ... ' + str(globalVars.REGION), end='')
             while not lora.has_joined():
                 utime.sleep(2.5)
                 print('.', end='')
-            print('Joined!!')
+            print('Joined to ' + str(globalVars.REGION) + '!!')
             # lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
             lora.nvram_save()
     except BaseException as e:
@@ -274,6 +274,17 @@ def UpdateConfigurationParameters(raw_payload):
                 print("Step CC - Setting ALARM LIST TYPE to " + str(int(payload[2:6],16)))
                 pycom.nvs_set('alarmlisttype', int(payload[2:6],16))
                 globalVars.ALARM_LIST_TYPE = int(payload[2:6],16)
+            if payload[0:2] == '29':
+                print("Step CC - Setting LORA Region to " + str(int(payload[2:6],16)))
+                if str(int(payload[2:6],16)) == "923":
+                    print("Step CC - Setting LORA Region to AS923")
+                    pycom.nvs_set('loraregion', 'AS923')
+                    globalVars.REGION = 'AS923'
+                elif str(int(payload[2:6],16)) == "868":
+                    print("Step CC - Setting LORA Region to EU868")
+                    pycom.nvs_set('loraregion', 'EU868')
+                    globalVars.REGION = 'EU868'
+                machine.reset()
     except BaseException as e:
         checkError("Step CC -  Error setting configuiration parameters", e)
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)

@@ -85,10 +85,9 @@ try:
     sched.start()
     tools.getResetCause()
     # wilocMain.forceConfigParameters()
-    wilocMain.loadConfigParameters()
+    tools.loadConfigParameters()
     wilocMain.loadSDCardData()
-    
-    
+    utime.sleep(2)
     lorawan.join_lora()
     
     while True:
