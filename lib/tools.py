@@ -17,7 +17,6 @@ import gc
 from errorissuer import checkError
 import sys
 from uio import StringIO
-from machine import WDT, RTC
 # ---------------
 
 try:
@@ -37,7 +36,7 @@ try:
 
     gc.enable()
     s = StringIO()
-    wdt = WDT(timeout=360000)
+    wdt = machine.WDT(timeout=360000)
 except BaseException as e:
     checkError("Error initializing tools", e)
     if globalVars.deviceID == 2:
@@ -56,7 +55,7 @@ except BaseException as e:
 
     gc.enable()
     s = StringIO()
-    wdt = WDT(timeout=360000)
+    wdt = machine.WDT(timeout=360000)
 
 def isInList(device, dmList):
     for dev in dmList:
@@ -128,11 +127,11 @@ def sleepProcess():
 
 def deepSleepWiloc(period):
     try:
-        debug("Forcing DeepSleep for " + str(int(period,16)) + " seconds","v")
+        debug("Forcing DeepSleep for " + str(period) + " seconds","v")
         utime.sleep(2)
-        py.setup_sleep(int(period,16))
+        py.setup_sleep(period)
         py.go_to_sleep()
-        machine.deepsleep(int(period,16))
+        machine.deepsleep(period)
     except BaseException as e:
         checkError("Error going to light sleep",e)
 
@@ -200,14 +199,12 @@ def systemCommands(data):
             machine.reset()
         elif data[:2] == "f0":
             debug(" --- Force deep sleep done successful --- ", "v")
-            deepSleepWiloc(int(data[2:]))
+            deepSleepWiloc(int(data[2:],16))
         elif data[:2] == "aa":
-            debug(" --- Testing DAC --- ", "v")
-            dac = machine.DAC('P10')
-            # dac.tone(1000,0)
-            dac.write(1)
-            time.sleep(1)
-            dac.write(0)
+            try:
+                debug(" --- Testing Block --- ", "v")
+            except BaseException as e5:
+                checkError("Error executing DAC outputs",e5)
         else:
             debug(" --- Manual command not recognise --- ", "v")
     except BaseException as e:
@@ -222,7 +219,6 @@ def getAccelerometer():
 def getGPS():
     try:
         l76 = L76GNSS(py)
-        rtc = machine.RTC()
         coord = dict(latitude=None, longitude=None)
         if globalVars.gps_enabled == True:
             coord = l76.get_location(debug=False, tout=globalVars.gps_timeout)
@@ -234,6 +230,7 @@ def getGPS():
             if dt is not None:
                 forceRTC(dt, "tuple")
                 debug("Updating timestamp from GPS - " + str(utime.time()) + " - GMT: " + str(utime.gmtime()), "v")
+                globalVars.flag_rtc_syncro = True
             
             debug("HDOP: " + str(coord['HDOP']) + "Latitude: " + str(coord['latitude']) + " - Longitude: " + str(coord['longitude']) + " - Timestamp: " + str(dt),'v')
             if float(str(coord['HDOP'])) > float(globalVars.min_hdop):

@@ -115,6 +115,7 @@ try:
                     lorawan.sendLoRaWANMessage()
             else:
                 sched.checkNextReset()
+                sched.checkDutyCycle()
                 tools.sleepProcess()
             
         except BaseException as eee:

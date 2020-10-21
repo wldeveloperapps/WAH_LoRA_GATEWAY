@@ -32,7 +32,7 @@ debug_cc = "vvv"
 stop_sleep_flag = False
 flag_sent = False
 flag_blelora = False
-
+flag_rtc_syncro = False
 
 # -------- Lists ------------
 devices_whitelist = []
