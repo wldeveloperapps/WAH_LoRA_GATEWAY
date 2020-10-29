@@ -106,7 +106,6 @@ try:
                             wilocMain.manage_devices_send(pkgSend)
             
             if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
-                pycom.nvs_set('laststatsreport', str(int(utime.time())))
                 # _thread.start_new_thread(wilocMain.manage_devices_send,(wilocMain.createStatisticsReport(),))
                 _thread.start_new_thread(wilocMain.createStatisticsReport,())
             

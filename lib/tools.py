@@ -200,6 +200,9 @@ def systemCommands(data):
         elif data[:2] == "f0":
             debug(" --- Force deep sleep done successful --- ", "v")
             deepSleepWiloc(int(data[2:],16))
+        elif data[:2] == "f1":
+            debug(" --- Force light indicator --- ", "v")
+            globalVars.indicatorFrequency = int(data[2:],16)
         elif data[:2] == "aa":
             try:
                 debug(" --- Testing Block --- ", "v")

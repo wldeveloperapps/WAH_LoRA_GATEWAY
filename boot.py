@@ -1,32 +1,15 @@
 # boot.py -- run on boot-up
 import pycom
-# import utime
-# from network import WLAN
+from lib.indicators import Indicators
+import _thread
+from machine import SD 
+import os
 
 pycom.wifi_on_boot(False)
 
-# # configure the WLAN subsystem in station mode (the default is AP)
-# wlan = WLAN(mode=WLAN.STA)
-# # go for fixed IP settings (IP, Subnet, Gateway, DNS)
-# # wlan.ifconfig(config=('192.168.0.107', '255.255.255.0', '192.168.0.1', '192.168.0.1'))
-# # wlan.scan()     # scan for available networks
-# wlan.connect(ssid='SackDaGo', auth=(WLAN.WPA2, 'sackdago'))
-# max_num = 30
-# flag_fail = False
-# while not wlan.isconnected():
-#     if max_num == 0:
-#         wlan.deinit()
-#         flag_fail = True
-#         break;
-#     max_num = max_num - 1
-#     utime.sleep(1)
-#     pass
+ind = Indicators()
+_thread.start_new_thread(ind.start,())
 
-# if flag_fail == False:
-#     print(wlan.ifconfig())
-
-from machine import SD
-import os
 
 sd = SD()
 os.mount(sd, '/sd')

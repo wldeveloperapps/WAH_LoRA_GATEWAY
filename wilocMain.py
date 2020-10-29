@@ -225,16 +225,17 @@ def createPackageToSend(devs, frames):
 def checkTimeForStatistics(INTERVAL):
     try:
         tools.debug("Step 6 - Checking time for statistics",'vvv')
-        # tools.debug("Test 0",'vvv')
         ts = int(utime.time())
-        # tools.debug("Test 1",'vvv')
+
         try:
             last_report = pycom.nvs_get('laststatsreport')
         except Exception:
             pycom.nvs_set('laststatsreport', str(ts))
             last_report = ts
-        # tools.debug("Test 2",'vvv')
-        if (int(last_report) + int(INTERVAL)) < ts:
+ 
+        if (int(last_report) + int(INTERVAL)) < ts and globalVars.flag_gps_running == False:
+            globalVars.flag_gps_running = True
+            pycom.nvs_set('laststatsreport', str(ts))
             rtcmgt.updateRTC()
             return True
         else:
@@ -309,6 +310,7 @@ def createStatisticsReport():
         strToSendStatistics.append(whiteLen[3])
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
         statsToSend.append(Device(addr="stats",raw=strToSendStatistics))
+        globalVars.flag_gps_running = False
         manage_devices_send(statsToSend)
         return statsToSend
     except BaseException as e:
@@ -327,6 +329,7 @@ def sendStatisticsReport():
             arrToSend.append(Device(addr="stats", raw=statSend))
             lorawan.sendLoRaWANMessage(arrToSend)
             tools.debug("Sending statistics report step 3", 'vv')
+            globalVars.flag_gps_running = False
     except BaseException as e:
         checkError("Error sending statistics report", e)
 

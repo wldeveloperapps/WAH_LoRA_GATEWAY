@@ -19,7 +19,7 @@ import tools
 
 
 if globalVars.REGION == 'EU868':
-    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=True, tx_power=14, tx_retries=1)
+    lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.EU868, device_class=LoRa.CLASS_A, adr=False, tx_power=14, tx_retries=1)
 elif globalVars.REGION == 'AS923':
     lora = LoRa(mode=LoRa.LORAWAN, region=LoRa.AS923, device_class=LoRa.CLASS_A, adr=False, tx_power=14, tx_retries=1)
 
@@ -115,6 +115,7 @@ def joinLoRaWANModule(lora):
                 utime.sleep(2.5)
                 print('.', end='')
             print('Joined to ' + str(globalVars.REGION) + '!!')
+            globalVars.indicatorFrequency = 100
             # lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
             lora.nvram_save()
     except BaseException as e:
@@ -204,6 +205,7 @@ def checkFrameConfiguration(frame, port):
                 pycom.nvs_set('rtc_dt', int(payload[2:10],16))
                 utime.sleep(5)
                 dt = pycom.nvs_get('rtc_dt')
+                globalVars.flag_rtc_syncro = True
                 print("Step SYNCRO - Syncronized RTC from Server to " + str(dt))
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'cd': # Change Debug Mode
@@ -285,6 +287,28 @@ def UpdateConfigurationParameters(raw_payload):
                     pycom.nvs_set('loraregion', 'EU868')
                     globalVars.REGION = 'EU868'
                 machine.reset()
+            if payload[0:2] == '30':
+                tools.debug("Step CC - Setting Scheduler timers StartTime , payload: " + str(payload), "v")
+                tmp_start = str(int(payload[2:6],16))
+                tmp_starthour = tmp_start[:2]
+                tmp_startmin = tmp_start[2:]
+                globalVars.dailyStart = str(tmp_starthour) + ":" + str(tmp_startmin) + ":00"
+                tools.debug("Step CC - Setting scheduler done, Start: " + str(globalVars.dailyStart), "v")
+            if payload[0:2] == '31':
+                tools.debug("Step CC - Setting Scheduler timers StopTime , payload: " + str(payload), "v")
+                tmp_stop = str(int(payload[2:6],16))
+                tmp_stophour = tmp_stop[:2]
+                tmp_stopmin = tmp_stop[2:]
+                globalVars.dailyStandBy = str(tmp_stophour) + ":" + str(tmp_stopmin) + ":00"
+                tools.debug("Step CC - Setting scheduler done, Stop " + str(globalVars.dailyStandBy), "v")
+            if payload[0:2] == '33':
+                tools.debug("Step CC - Setting Scheduler timers StartDownlinks, payload: " + str(payload), "v")
+                tmp_startdwn = str(int(payload[2:6],16))
+                tmp_startdwnhour = tmp_startdwn[:2]
+                tmp_startdwnmin = tmp_startdwn[2:]
+                globalVars.startDownlink = str(tmp_startdwnhour) + ":" + str(tmp_startdwnmin) + ":00"
+                tools.debug("Step CC - Setting scheduler done, Startdownlinks: " + str(globalVars.startDownlink), "v")
+
     except BaseException as e:
         checkError("Step CC -  Error setting configuiration parameters", e)
         return 17, "Step CC -  Error setting configuiration parameters: " + str(e)
