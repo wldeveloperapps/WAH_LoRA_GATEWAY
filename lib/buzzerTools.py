@@ -9,7 +9,7 @@ import _thread
 
 p_out = Pin('P10', mode=Pin.OUT)
 buzzer_lines = []
-flag_buzzer = True
+flag_buzzer = False
 def BuzzerTurnOff():
     p_out.hold(False)
     p_out.value(0)

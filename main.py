@@ -103,10 +103,9 @@ try:
                     if len(sentDevices) > 0:
                         pkgSend = wilocMain.createPackageToSend(sentDevices, globalVars.scanned_frames)
                         if len(pkgSend) > 0:
-                            wilocMain.manage_devices_send(pkgSend)
+                            tools.manage_devices_send(pkgSend)
             
             if wilocMain.checkTimeForStatistics(globalVars.STATISTICS_REPORT_INTERVAL) == True:
-                # _thread.start_new_thread(wilocMain.manage_devices_send,(wilocMain.createStatisticsReport(),))
                 _thread.start_new_thread(wilocMain.createStatisticsReport,())
             
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:

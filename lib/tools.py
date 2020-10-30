@@ -341,4 +341,19 @@ def template(dev):
     except BaseException as e:
         checkError("Error going to light sleep",e)
 
+def manage_devices_send(dev_list):
+    try:
+        for dd1 in dev_list:
+            exists = False
+            for dd2 in globalVars.lora_sent_devices:
+                # print("Dev1: " + str(dd1.addr) + " - Dev2: " + str(dd2.addr))
+                if str(dd1.addr) == str(dd2.addr):
+                    # print("Device already exist: " + str(dd1.addr))
+                    exists = True
+            if exists == False:
+                globalVars.lora_sent_devices.append(dd1)
+                # print("Adding device to sent list: " + str(dd1.addr))
 
+        debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"vvv")
+    except BaseException as e:
+        checkError("Error managing devices to send", e)

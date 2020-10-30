@@ -1,10 +1,11 @@
 from lib.loRaReportsTools import LoRaWANSentListCleanDevices
-import whitelistTools
-import blacklisttools
 from lib.buzzerTools import BeepBuzzer, BuzzerListCleanDevices
 from lib.rtcmgt import initRTC, forceRTC
 from errorissuer import checkError
+from lib.beacon import Device
 from network import LoRa
+import whitelistTools
+import blacklisttools
 import globalVars
 import ubinascii
 import binascii
@@ -168,9 +169,34 @@ def checkFrameConfiguration(frame, port):
                 print("##### Message received of new device in whitelist, lenght: " + str(len(str(payload))/2))
                 whitelistTools.WhiteListNewDevice(str(payload[2:]))
                 BeepBuzzer(2)
-            if str(payload[0:2]) == 'a1': # Add new devices to the BlackList
+            elif str(payload[0:2]) == 'a1': # Add new devices to the BlackList
                 print("##### Message received of new device in BlackList, lenght: " + str(len(str(payload))/2))
                 blacklisttools.BlackListNewDevice(str(payload[2:]))
+                BeepBuzzer(2)
+            elif str(payload[0:2]) == 'ad': # Add new devices to the BlackList
+                print("##### Message received for generic device adding, lenght: " + str(len(str(payload))/2))
+                if len(payload[2:]) >= 4:
+                    list_type = int(payload[2:4],16)
+                    delete_list = int(payload[4:6],16)
+                    max_message_counter = int(payload[6:8],16)
+                    id_message = int(payload[8:10],16)
+                    # ----------Set List Type-------------
+                    pycom.nvs_set('alarmlisttype', int(payload[2:4],16))
+                    globalVars.ALARM_LIST_TYPE = int(payload[2:4],16)
+                    # ----------Clean specific lists-------------
+                    if id_message == 1 and delete_list == 1:
+                        if list_type == 1:
+                            whitelistTools.WhiteListDeleteDevices()
+                        elif list_type == 2:
+                            blacklisttools.BlackListDeleteDevices()
+                    # ----------Append devices to lists-------------
+                    if list_type == 1:
+                            whitelistTools.WhiteListNewDevice(str(payload[10:]))
+                    elif list_type == 2:
+                            blacklisttools.BlackListNewDevice(str(payload[10:]))
+                    # ----------Prepare uplink messages-------------
+                    createReceivingReport()
+
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'd0': # Delete device from the WhiteList
                 whitelistTools.WhiteListDeleteSpecificDevice(str(payload[2:]))
@@ -356,3 +382,35 @@ def sendAckMessageThread(lora_sck):
     except BaseException as eee:
         checkError("Error Threading LoRaWAN payload",eee)
 
+def createReceivingReport():
+    try:
+        devicesToSend = []
+        strToSend = []
+        gps_stats = 66
+        bat = tools.getBatteryPercentage()
+        st_bat = struct.pack(">I", bat)
+        st_gps_stats = struct.pack(">I", gps_stats)
+        whiteLen = struct.pack(">I", len(globalVars.devices_whitelist))
+        blackLen = struct.pack(">I", len(globalVars.devices_blacklist))
+        strToSend.append(struct.pack(">I", 173)[3]) # Protocol
+        # strToSend.append(struct.pack(">I", 0)) # Command ID
+        strToSend.append(globalVars.longitude[3]) # Gateway Longitude
+        strToSend.append(globalVars.longitude[2]) # Gateway Longitude
+        strToSend.append(globalVars.longitude[1]) # Gateway Longitude
+        strToSend.append(globalVars.longitude[0]) # Gateway Longitude
+        strToSend.append(globalVars.latitude[3]) # Gateway Latitude 
+        strToSend.append(globalVars.latitude[2]) # Gateway Latitude 
+        strToSend.append(globalVars.latitude[1]) # Gateway Latitude 
+        strToSend.append(globalVars.latitude[0]) # Gateway Latitude 
+        strToSend.append(st_gps_stats[3]) # Gateway GPS Status & Report type HARDCODE
+        strToSend.append(st_bat[3])
+        strToSend.append(whiteLen[2])
+        strToSend.append(whiteLen[3])
+        strToSend.append(blackLen[2])
+        strToSend.append(blackLen[3])
+        devicesToSend.append(Device(addr="ackrep",raw=strToSend))
+        tools.debug("Creating ack report: " + str(strToSend),'v')
+        tools.manage_devices_send(devicesToSend)
+    except BaseException as e1:
+        checkError("Step 5 - Error creating ack report", e1)
+        return [] 

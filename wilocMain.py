@@ -145,7 +145,6 @@ def checkTimeToAddDevices(devs, MAX_REFRESH_TIME):
         return []
 
 def createPackageToSend(devs, frames):
-    global py
     try:
         # CommandID - Latitude - Longitude - GPS/REP - Battery - MACDevice - LatitudeDevice - LongitudeDevice
         # tools.debug("Step 4 - Creating messages to send, Devs: " + str(devs),'v')
@@ -311,27 +310,28 @@ def createStatisticsReport():
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
         statsToSend.append(Device(addr="stats",raw=strToSendStatistics))
         globalVars.flag_gps_running = False
-        manage_devices_send(statsToSend)
+        tools.manage_devices_send(statsToSend)
         return statsToSend
     except BaseException as e:
         checkError("Error creating statistics report", e)
         # strError.append('19')
         return []
 
-def sendStatisticsReport():
-    try:
-        tools.debug("Sending statistics report step 1", 'vv')
+# def sendStatisticsReport():
+#     try:
+#         tools.debug("Sending statistics report step 1", 'vv')
         
-        statSend = createStatisticsReport()
-        tools.debug("Sending statistics report step 2", 'vv')
-        if len(statSend) > 0:
-            arrToSend = []
-            arrToSend.append(Device(addr="stats", raw=statSend))
-            lorawan.sendLoRaWANMessage(arrToSend)
-            tools.debug("Sending statistics report step 3", 'vv')
-            globalVars.flag_gps_running = False
-    except BaseException as e:
-        checkError("Error sending statistics report", e)
+#         statSend = createStatisticsReport()
+#         tools.debug("Sending statistics report step 2", 'vv')
+#         if len(statSend) > 0:
+#             arrToSend = []
+#             arrToSend.append(Device(addr="stats", raw=statSend))
+#             lorawan.sendLoRaWANMessage(arrToSend)
+#             tools.debug("Sending statistics report step 3", 'vv')
+#             globalVars.flag_gps_running = False
+#     except BaseException as e:
+#         checkError("Error sending statistics report", e)
+
 
 def loadLastValidPosition():
     try:
@@ -364,19 +364,4 @@ def checkTimeToSend(interval):
         checkError("Error checking time to send by LoRa", e)
         return False
 
-def manage_devices_send(dev_list):
-    try:
-        for dd1 in dev_list:
-            exists = False
-            for dd2 in globalVars.lora_sent_devices:
-                # print("Dev1: " + str(dd1.addr) + " - Dev2: " + str(dd2.addr))
-                if str(dd1.addr) == str(dd2.addr):
-                    # print("Device already exist: " + str(dd1.addr))
-                    exists = True
-            if exists == False:
-                globalVars.lora_sent_devices.append(dd1)
-                # print("Adding device to sent list: " + str(dd1.addr))
 
-        tools.debug("LoRaWAN Stored records to send: " + str(len(globalVars.lora_sent_devices)),"vvv")
-    except BaseException as e:
-        checkError("Error managing devices to send", e)
