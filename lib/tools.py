@@ -336,6 +336,13 @@ def loadConfigParameters():
         except BaseException as e:
             pycom.nvs_set('loraregion', globalVars.REGION)
             checkError("LoRaWAN REGION error", e)
+
+        try:
+            globalVars.LOW_BATTERY_VOLTAGE = pycom.nvs_get('lowbattalarm')
+            debug("Step 0.5 - LOW_BATTERY_VOLTAGE: " + str(globalVars.LOW_BATTERY_VOLTAGE),'v')
+        except BaseException as e:
+            pycom.nvs_set('lowbattalarm', globalVars.LOW_BATTERY_VOLTAGE)
+            checkError("LoRaWAN LOW_BATTERY_VOLTAGE error", e)
     except BaseException as e1:
         checkError("Step 18 - Error loading config parameters",e1) 
 

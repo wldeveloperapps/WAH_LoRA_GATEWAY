@@ -31,10 +31,10 @@ class Indicators():
                             utime.sleep(globalVars.indicatorFrequencyOn/10)
                             flag_status = True
                     else:    
-                        tools.debug("Indicators - Going to sleep directly because lastval=indfrec: " + str(globalVars.indicatorFrequencyOn) + ": " + str(globalVars.indicatorFrequencyOff),"v")
+                        tools.debug("Indicators - Going to sleep directly because lastval=indfrec: " + str(globalVars.indicatorFrequencyOn) + ": " + str(globalVars.indicatorFrequencyOff),"vvv")
                         utime.sleep(5)
                 else:
-                    tools.debug("Indicators - Updating indicators frequency value: " + str(globalVars.indicatorFrequencyOn) + ": " + str(globalVars.indicatorFrequencyOff),"v")
+                    tools.debug("Indicators - Updating indicators frequency value: " + str(globalVars.indicatorFrequencyOn) + ": " + str(globalVars.indicatorFrequencyOff),"vvv")
                     last_valOn = globalVars.indicatorFrequencyOn
                     last_valOff = globalVars.indicatorFrequencyOff
                     if globalVars.indicatorFrequencyOn == 100:

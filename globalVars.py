@@ -14,7 +14,7 @@ BUZZER_DURATION = 1 # Code 25
 SENT_PERIOD = 60 # Code 26
 BUZZER_COUNTER_ALARM = 3 # Code 27
 ALARM_LIST_TYPE = 2 # Code 28 ------- 0-None / 1-Whitelist / 2-Blacklist 
-LOW_BATTERY_VOLTAGE = 3500
+LOW_BATTERY_VOLTAGE = 15 # Code 33
 # ------ LoRaWAN Configuration -------
 LORA_CHANNEL = 1
 LORA_NODE_DR = 4
@@ -24,7 +24,7 @@ MAC_TYPE='LORA'
 # MAC_TYPE='BLE'
 
 # ------ Debug -------------
-debug_cc = "vvv"
+debug_cc = "v"
 
 # ------ Timers -----------
 dailyreset="00:00:00"

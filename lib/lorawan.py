@@ -326,13 +326,17 @@ def UpdateConfigurationParameters(raw_payload):
                 tmp_stopmin = tmp_stop[2:]
                 globalVars.dailyStandBy = str(tmp_stophour) + ":" + str(tmp_stopmin) + ":00"
                 tools.debug("Step CC - Setting scheduler done, Stop " + str(globalVars.dailyStandBy), "v")
-            if payload[0:2] == '33':
+            if payload[0:2] == '32':
                 tools.debug("Step CC - Setting Scheduler timers StartDownlinks, payload: " + str(payload), "v")
                 tmp_startdwn = str(int(payload[2:6],16))
                 tmp_startdwnhour = tmp_startdwn[:2]
                 tmp_startdwnmin = tmp_startdwn[2:]
                 globalVars.startDownlink = str(tmp_startdwnhour) + ":" + str(tmp_startdwnmin) + ":00"
                 tools.debug("Step CC - Setting scheduler done, Startdownlinks: " + str(globalVars.startDownlink), "v")
+            if payload[0:2] == '33':
+                print("Step CC - Setting LOW_BATTERY_VOLTAGE_ALARM to " + str(int(payload[2:6],16)))
+                pycom.nvs_set('lowbattalarm', int(payload[2:6],16))
+                globalVars.LOW_BATTERY_VOLTAGE = int(payload[2:6],16)
 
     except BaseException as e:
         checkError("Step CC -  Error setting configuiration parameters", e)

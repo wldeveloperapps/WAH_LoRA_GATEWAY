@@ -321,7 +321,7 @@ def checkLowBattery():
     try:
         
         batt = tools.getBatteryPercentage()
-        tools.debug("Checking battery voltage: " + str(batt) + "%", "vv")
+        tools.debug("Checking battery voltage: " + str(batt) + "%", "v")
         if batt < globalVars.LOW_BATTERY_VOLTAGE:
             globalVars.indicatorFrequencyOn = 2
             globalVars.indicatorFrequencyOff = 30
