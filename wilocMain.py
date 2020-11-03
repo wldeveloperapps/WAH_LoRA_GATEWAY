@@ -317,21 +317,23 @@ def createStatisticsReport():
         # strError.append('19')
         return []
 
-# def sendStatisticsReport():
-#     try:
-#         tools.debug("Sending statistics report step 1", 'vv')
+def checkLowBattery():
+    try:
         
-#         statSend = createStatisticsReport()
-#         tools.debug("Sending statistics report step 2", 'vv')
-#         if len(statSend) > 0:
-#             arrToSend = []
-#             arrToSend.append(Device(addr="stats", raw=statSend))
-#             lorawan.sendLoRaWANMessage(arrToSend)
-#             tools.debug("Sending statistics report step 3", 'vv')
-#             globalVars.flag_gps_running = False
-#     except BaseException as e:
-#         checkError("Error sending statistics report", e)
+        batt = tools.getBatteryPercentage()
+        tools.debug("Checking battery voltage: " + str(batt) + "%", "vv")
+        if batt < globalVars.LOW_BATTERY_VOLTAGE:
+            globalVars.indicatorFrequencyOn = 2
+            globalVars.indicatorFrequencyOff = 30
+            return True
+        else:
+            globalVars.indicatorFrequencyOn = 100
+            globalVars.indicatorFrequencyOff = 0
+            return False
 
+        
+    except BaseException as e:
+        checkError("Error going to light sleep",e)
 
 def loadLastValidPosition():
     try:
@@ -356,6 +358,7 @@ def checkTimeToSend(interval):
         if (globalVars.last_lora_sent + int(interval)) < ts: 
             globalVars.last_lora_sent = ts
             rtcmgt.updateRTC()
+            checkLowBattery()
             return True
         else:
             tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)) + " - Store devices: " + str(len(globalVars.lora_sent_devices)),"v")

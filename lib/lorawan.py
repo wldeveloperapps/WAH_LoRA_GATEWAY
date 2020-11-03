@@ -116,8 +116,7 @@ def joinLoRaWANModule(lora):
                 utime.sleep(2.5)
                 print('.', end='')
             print('Joined to ' + str(globalVars.REGION) + '!!')
-            globalVars.indicatorFrequency = 100
-            # lora.callback(trigger=(LoRa.RX_PACKET_EVENT | LoRa.TX_PACKET_EVENT), handler=lora_cb)
+            globalVars.indicatorFrequencyOn = 100
             lora.nvram_save()
     except BaseException as e:
         checkError("Step 0.1 - Error initializaing LoRaWAN module",e)

@@ -86,7 +86,17 @@ def getBatteryLevel():
 
 def getBatteryPercentage():
     try:
-        level = int(round(py.read_battery_voltage()*1000))
+        acc_bat = 0
+        counter = 0
+        for a in range(10):
+            val = int(round(py.read_battery_voltage()*1000))   
+            if val > 0:
+                acc_bat = acc_bat + val
+                counter = counter + 1
+                time.sleep(0.2)
+
+        
+        level = int(round(acc_bat / counter)) 
         max = 4200
         min = 3400
         if level > max:
@@ -202,7 +212,8 @@ def systemCommands(data):
             deepSleepWiloc(int(data[2:],16))
         elif data[:2] == "f1":
             debug(" --- Force light indicator --- ", "v")
-            globalVars.indicatorFrequency = int(data[2:],16)
+            globalVars.indicatorFrequencyOn = int(data[2:4],16)
+            globalVars.indicatorFrequencyOff = int(data[4:6],16)
         elif data[:2] == "aa":
             try:
                 debug(" --- Testing Block --- ", "v")
