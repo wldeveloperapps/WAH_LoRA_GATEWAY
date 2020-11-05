@@ -51,6 +51,8 @@ scanned_frames = []
 
 last_lora_sent = 0
 lora_sent_devices = []
+lora_sent_stats = []
+lora_sent_acks = []
 
 # --------- GPS ----------------
 gps_enabled = True

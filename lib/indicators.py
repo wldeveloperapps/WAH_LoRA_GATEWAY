@@ -16,20 +16,15 @@ class Indicators():
 
     def start(self):
         try:
-            flag_status = False
             last_valOn = 0
             last_valOff = 0
             while True:
                 if last_valOn == globalVars.indicatorFrequencyOn and last_valOff == globalVars.indicatorFrequencyOff:
                     if globalVars.indicatorFrequencyOn != 100 and globalVars.indicatorFrequencyOff != 100:
-                        if flag_status == True:
-                            self.p_out_init.value(0)
-                            utime.sleep(globalVars.indicatorFrequencyOff/10)
-                            flag_status = False 
-                        else:
                             self.p_out_init.value(1)
                             utime.sleep(globalVars.indicatorFrequencyOn/10)
-                            flag_status = True
+                            self.p_out_init.value(0)
+                            utime.sleep(globalVars.indicatorFrequencyOff/10)
                     else:    
                         tools.debug("Indicators - Going to sleep directly because lastval=indfrec: " + str(globalVars.indicatorFrequencyOn) + ": " + str(globalVars.indicatorFrequencyOff),"vvv")
                         utime.sleep(5)

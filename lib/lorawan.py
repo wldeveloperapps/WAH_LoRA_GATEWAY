@@ -372,15 +372,33 @@ def sendAckMessageThread(lora_sck):
         if len(globalVars.lora_sent_devices) > 0: 
             for dev in globalVars.lora_sent_devices:
                 try:
-                    # tools.debug("Start Threading, LoRaWAN message, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw) + " - DataLen: " + str(len(bytes(dev.raw))), 'vv')
+                    utime.sleep(10)
                     lora_sck.send(bytes(dev.raw))
-                    utime.sleep(2)
-                    tools.debug("Finish Threading, LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw), 'vv')
+                    tools.debug("Devices Threading, LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw), 'vv')
                 except BaseException as e1:
                     checkError("Error sending message of device: " + str(dev.addr), e1)
-                utime.sleep(8)
-        
+                
             globalVars.lora_sent_devices = []
+
+            for dev_stat in globalVars.lora_sent_stats:
+                try:
+                    utime.sleep(10)
+                    lora_sck.send(bytes(dev_stat.raw))
+                    tools.debug("Statistics Threading, LoRaWAN message succesfully, Device: " + str(dev_stat.addr) + " - Raw: " + str(dev_stat.raw), 'vv')
+                except BaseException as e2:
+                    checkError("Error sending message of statistics: " + str(dev_stat.addr), e2)
+            
+            globalVars.lora_sent_stats = []
+            
+            for dev_acks in globalVars.lora_sent_acks:
+                try:
+                    utime.sleep(10)
+                    lora_sck.send(bytes(dev_acks.raw))
+                    tools.debug("ACKs Threading, LoRaWAN message succesfully, Device: " + str(dev_acks.addr) + " - Raw: " + str(dev_acks.raw), 'vv')
+                except BaseException as e3:
+                    checkError("Error sending message of ACKs: " + str(dev_acks.addr), e3)
+            
+            globalVars.lora_sent_acks = []
         
     except BaseException as eee:
         checkError("Error Threading LoRaWAN payload",eee)
@@ -411,7 +429,7 @@ def createReceivingReport():
         strToSend.append(whiteLen[3])
         strToSend.append(blackLen[2])
         strToSend.append(blackLen[3])
-        devicesToSend.append(Device(addr="ackrep",raw=strToSend))
+        devicesToSend.append(Device(addr="ackresp",raw=strToSend))
         tools.debug("Creating ack report: " + str(strToSend),'v')
         tools.manage_devices_send(devicesToSend)
     except BaseException as e1:

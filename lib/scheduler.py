@@ -31,8 +31,7 @@ class Scheduler:
                 tools.debug("Scheduler - RTC is not syncronized, so not possible to check the DutyCycle properly", "v")    
                 return
 
-            tools.debug("Scheduler - Daily Start: " + globalVars.dailyStart, "v")
-            tools.debug("Scheduler - Daily StandBy: " + globalVars.dailyStandBy, "v")
+            tools.debug("Scheduler - Daily Start: " + globalVars.dailyStart + "- Daily StandBy: " + globalVars.dailyStandBy, "v")
             if dt[3] == int(globalVars.dailyStandBy.split(":")[0]) and dt[4] == int(globalVars.dailyStandBy.split(":")[1]) and dt[5] > int(globalVars.dailyStandBy.split(":")[2]) and dt[5] < (int(globalVars.dailyStandBy.split(":")[2])+60):
                 tools.debug("Scheduler - DutyCycle - Going to sleep for a while...", "v")
                 tools.deepSleepWiloc(60)

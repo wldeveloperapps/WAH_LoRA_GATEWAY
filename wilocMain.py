@@ -361,7 +361,10 @@ def checkTimeToSend(interval):
             checkLowBattery()
             return True
         else:
-            tools.debug("LoRaWAN Sent - Remaining time: " + str(((globalVars.last_lora_sent + int(interval)) - ts)) + " - Store devices: " + str(len(globalVars.lora_sent_devices)),"v")
+            tools.debug("LoRaWAN - Remaining time to send: " + str(((globalVars.last_lora_sent + int(interval)) - ts)) 
+            + " - Store devices: " + str(len(globalVars.lora_sent_devices)) 
+            + " - Stats: " + str(len(globalVars.lora_sent_stats))
+            + " - ACKs: " + str(len(globalVars.lora_sent_acks)),"v")
             return False
     except BaseException as e:
         checkError("Error checking time to send by LoRa", e)
