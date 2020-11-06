@@ -17,6 +17,7 @@ import pycom
 import _thread
 import gc
 import tools
+import scheduler
 
 
 if globalVars.REGION == 'EU868':
@@ -195,6 +196,7 @@ def checkFrameConfiguration(frame, port):
                             blacklisttools.BlackListNewDevice(str(payload[10:]))
                     # ----------Prepare uplink messages-------------
                     createReceivingReport()
+                    scheduler.checkOvernightCycle(int(payload[8:10],16),int(payload[6:8],16))
 
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'd0': # Delete device from the WhiteList

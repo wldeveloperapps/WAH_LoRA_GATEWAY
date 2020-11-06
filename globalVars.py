@@ -32,7 +32,7 @@ startDownlink="01:00:00"
 endDownlink="03:00:00"
 dailyStart="06:00:00"
 dailyStandBy="16:28:00"
-
+dayOff = 6
 # ------ Flags ------------
 stop_sleep_flag = False
 flag_sent = False
