@@ -363,16 +363,16 @@ def manage_devices_send(dev_list):
     try:
         for dd1 in dev_list:
             exists = False
-            if dd1.addr == "stats":
-                globalVars.lora_sent_stats.append(dd1)
-            elif dd1.addr == "ackresp":
-                globalVars.lora_sent_acks.append(dd1)
-            else:
-                for dd2 in globalVars.lora_sent_devices:
-                    if str(dd1.addr) == str(dd2.addr):
-                        exists = True
-                if exists == False:
-                    globalVars.lora_sent_devices.append(dd1)
+            # if dd1.addr == "stats":
+            #     globalVars.lora_sent_stats.append(dd1)
+            # elif dd1.addr == "ackresp":
+            #     globalVars.lora_sent_acks.append(dd1)
+            # else:
+            for dd2 in globalVars.lora_sent_devices:
+                if str(dd1.addr) == str(dd2.addr):
+                    exists = True
+            if exists == False:
+                globalVars.lora_sent_devices.append(dd1)
 
         debug("LoRaWAN Stored records to send, Devices: " 
         + str(len(globalVars.lora_sent_devices)) 

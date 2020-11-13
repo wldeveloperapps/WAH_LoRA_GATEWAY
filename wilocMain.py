@@ -308,10 +308,9 @@ def createStatisticsReport():
         strToSendStatistics.append(whiteLen[2])
         strToSendStatistics.append(whiteLen[3])
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
-        statsToSend.append(Device(addr="stats",raw=strToSendStatistics))
         globalVars.flag_gps_running = False
-        tools.manage_devices_send(statsToSend)
-        return statsToSend
+        globalVars.lora_sent_stats.append(Device(addr="stats",raw=strToSendStatistics))
+        # return statsToSend
     except BaseException as e:
         checkError("Error creating statistics report", e)
         # strError.append('19')

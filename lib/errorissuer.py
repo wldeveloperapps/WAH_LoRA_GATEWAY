@@ -44,7 +44,9 @@ def checkError(type_msg ,message):
         saveErrorInFlash(str(type_msg)+ str(msg_complete))
         utime.sleep(5)
         if 'I2C bus error' in str(msg_complete):
-            machine.reset()
+            #TODO Sometimes when reading the battery level it says I2C Bus Error. Check solution
+            pass
+            # machine.reset()
         if 'memory' in str(msg_complete):
             machine.reset()     
     except BaseException as e:

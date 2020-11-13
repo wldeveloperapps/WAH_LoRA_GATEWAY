@@ -3,10 +3,27 @@ import machine
 import rtcmgt
 import tools
 import globalVars
-import random
+import uos
 from errorissuer import checkError
 
-class Scheduler:
+def singleton(class_):
+    class class_w(class_):
+        _instance = None
+        def __new__(class2, *args, **kwargs):
+            if class_w._instance is None:
+                class_w._instance = super(class_w, class2).__new__(class2, *args, **kwargs)
+                class_w._instance._sealed = False
+            return class_w._instance
+        def __init__(self, *args, **kwargs):
+            if self._sealed:
+                return
+            super(class_w, self).__init__(*args, **kwargs)
+            self._sealed = True
+    class_w.__name__ = class_.__name__
+    return class_w
+
+@singleton
+class Scheduler():
     
     def __init__(self):
         self.dailyreset=globalVars.dailyreset
@@ -35,13 +52,13 @@ class Scheduler:
             tools.debug("Scheduler - Daily ends at: " + globalVars.dailyStandBy + "- Downlinks begin at: " + globalVars.startDownlink, "v")
             # --------- From End of the day to first Downlink message ---------------
             if dt[3] == int(globalVars.dailyStandBy.split(":")[0]) and dt[4] == int(globalVars.dailyStandBy.split(":")[1]) and dt[5] > int(globalVars.dailyStandBy.split(":")[2]) and dt[5] < (int(globalVars.dailyStandBy.split(":")[2])+60):
-                rnd_tmp_1 = calculateSleepTime(globalVars.dailyStandBy,globalVars.startDownlink)
+                rnd_tmp_1 = calculateSleepTime(self,globalVars.dailyStandBy,globalVars.startDownlink)
                 tools.debug("Scheduler - DutyCycle - Going to sleep because the day ends and until the downlinks begin: " + str(rnd_tmp_1), "v")
                 tools.deepSleepWiloc(rnd_tmp_1)
             
             # --------- Backup sleeping process in case the device is still on when passing the maximum downlink time  ---------------
             if dt[3] == int(globalVars.endDownlink.split(":")[0]) and dt[4] == int(globalVars.endDownlink.split(":")[1]) and dt[5] > int(globalVars.endDownlink.split(":")[2]) and dt[5] < (int(globalVars.endDownlink.split(":")[2])+60):
-                rnm_tmp = calculateSleepTime(globalVars.dailyStandBy,globalVars.startDownlink)
+                rnm_tmp = calculateSleepTime(self,globalVars.dailyStandBy,globalVars.startDownlink)
                 tools.debug("Scheduler - DutyCycle - Going to sleep until the day begins: " + str(rnm_tmp), "v")
                 tools.deepSleepWiloc(rnm_tmp)
             # ---------- Check if today is the day OFF --------------
@@ -62,15 +79,15 @@ class Scheduler:
             tools.debug("Scheduler - Overnight start: " + globalVars.startDownlink + "- Overnight end: " + globalVars.endDownlink, "v")
             if frameid == framescounter:
                 current_wiloc_dt = str(dt[3]) + ":" + str(dt[4]) + ":" + str(dt[5])
-                slp_tm = calculateSleepTime(current_wiloc_dt,globalVars.dailyStart)
+                slp_tm = calculateSleepTime(self,current_wiloc_dt,globalVars.dailyStart)
                 tools.debug("Scheduler - Going to sleep until day begins: " + str(slp_tm), "v")
                 tools.deepSleepWiloc(slp_tm)
             else:
-                rnd_secs = random.randint(300,900)
+                rnd_secs = random()
                 tools.debug("Scheduler - Going to sleep until next downlink: " + str(rnd_secs), "v")
                 tools.deepSleepWiloc(rnd_secs)
         except BaseException as e:
-            checkError("Error on scheduler", e)
+            checkError("Error on scheduler OvernightCycle", e)
 
     def start(self):
         try:
@@ -90,6 +107,13 @@ class Scheduler:
             total_diff = (diff_hour*3600) + (diff_min*60) + diff_sec
             return total_diff
         except BaseException as e:
-            checkError("Error on scheduler", e)
+            checkError("Error on scheduler CalculatingSleepTime", e)
 
-    
+    def random(self):
+        try:
+            the_range = 900-300
+            result = uos.urandom(1) / 256 * the_range
+            tools.debug("Scheduler - Random number: " + str(result), "v")
+            return result
+        except BaseException as e:
+            checkError("Error getting random number", e)

@@ -109,7 +109,6 @@ try:
                 _thread.start_new_thread(wilocMain.createStatisticsReport,())
             
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
-                if len(globalVars.lora_sent_devices) > 0:
                     lorawan.sendLoRaWANMessage()
             else:
                 sched.checkNextReset()
