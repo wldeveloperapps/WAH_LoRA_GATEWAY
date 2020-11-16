@@ -380,3 +380,23 @@ def manage_devices_send(dev_list):
         + " - ACKs: "+ str(len(globalVars.lora_sent_acks)) ,"vvv")
     except BaseException as e:
         checkError("Error managing devices to send", e)
+
+def random():
+    try:
+        result = round(int(''.join(map(hex, uos.urandom(2))).replace('0x', ''), 16)/100)
+        
+        # tools.debug("Scheduler - Random number: " + str(result), "v")
+        return result
+    except BaseException as e:
+        checkError("Error getting random number", e)
+
+def calculateSleepTime(start, end):
+    try:
+        # tools.debug("CalculateSleepTime", "v")
+        diff_hour = int(end.split(':')[0]) - int(start.split(':')[0])
+        diff_min = int(end.split(':')[1]) - int(start.split(':')[1])
+        diff_sec = int(end.split(':')[2]) - int(start.split(':')[2])
+        total_diff = (diff_hour*3600) + (diff_min*60) + diff_sec
+        return total_diff
+    except BaseException as e:
+        checkError("Error on scheduler CalculatingSleepTime", e)

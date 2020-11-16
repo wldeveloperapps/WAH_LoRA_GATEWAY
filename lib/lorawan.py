@@ -197,6 +197,7 @@ def checkFrameConfiguration(frame, port):
                             blacklisttools.BlackListNewDevice(str(payload[10:]))
                     # ----------Prepare uplink messages-------------
                     createReceivingReport()
+                    # ----------Check Scheduler-------------
                     sched = Scheduler()
                     sched.checkOvernightCycle(int(payload[8:10],16),int(payload[6:8],16))
 
