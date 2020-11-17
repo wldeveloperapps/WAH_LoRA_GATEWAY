@@ -61,7 +61,7 @@ class Scheduler():
                 tools.debug("Scheduler - DutyCycle - Going to sleep until the day begins: " + str(rnm_tmp), "v")
                 tools.deepSleepWiloc(rnm_tmp)
             # ---------- Check if today is the day OFF --------------
-            if dt[6] == globalVars.dayOff:
+            if dt[6] in globalVars.dayOff:
                 tools.debug("Scheduler - Going to sleep because is the day OFF", "v")
                 tools.deepSleepWiloc(86460)
 
