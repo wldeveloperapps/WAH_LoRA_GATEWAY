@@ -397,6 +397,13 @@ def calculateSleepTime(start, end):
         diff_min = int(end.split(':')[1]) - int(start.split(':')[1])
         diff_sec = int(end.split(':')[2]) - int(start.split(':')[2])
         total_diff = (diff_hour*3600) + (diff_min*60) + diff_sec
+        if total_diff < 0:
+            diff_hour__ref = int(globalVars.refDay.split(':')[0]) - int(start.split(':')[0])
+            diff_min__ref = int(globalVars.refDay.split(':')[1]) - int(start.split(':')[1])
+            diff_sec__ref = int(globalVars.refDay.split(':')[2]) - int(start.split(':')[2])
+            total_diff_ref = (diff_hour__ref*3600) + (diff_min__ref*60) + diff_sec__ref
+            total_diff_end = (int(end.split(':')[0])*3600) + (int(end.split(':')[1])*60) + int(end.split(':')[2])
+            total_diff = total_diff_ref + total_diff_end
         return total_diff
     except BaseException as e:
         checkError("Error on scheduler CalculatingSleepTime", e)

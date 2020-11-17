@@ -31,7 +31,9 @@ dailyreset="00:00:00"
 startDownlink="01:00:00"
 endDownlink="03:00:00"
 dailyStart="06:00:00"
-dailyStandBy="16:28:00"
+dailyStandBy="18:20:00"
+refDay="23:59:59"
+
 dayOff = 6
 # ------ Flags ------------
 stop_sleep_flag = False

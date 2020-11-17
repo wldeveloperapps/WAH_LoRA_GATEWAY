@@ -49,13 +49,13 @@ class Scheduler():
                 return
 
             tools.debug("Scheduler - Daily ends at: " + globalVars.dailyStandBy + "- Downlinks begin at: " + globalVars.startDownlink, "v")
-            # --------- From End of the day to first Downlink message ---------------
+            # --------- S1 (Sleep Cycle 1) - From End of the day to first Downlink message ---------------
             if dt[3] == int(globalVars.dailyStandBy.split(":")[0]) and dt[4] == int(globalVars.dailyStandBy.split(":")[1]) and dt[5] > int(globalVars.dailyStandBy.split(":")[2]) and dt[5] < (int(globalVars.dailyStandBy.split(":")[2])+60):
                 rnd_tmp_1 = tools.calculateSleepTime(globalVars.dailyStandBy,globalVars.startDownlink)
                 tools.debug("Scheduler - DutyCycle - Going to sleep because the day ends and until the downlinks begin: " + str(rnd_tmp_1), "v")
                 tools.deepSleepWiloc(rnd_tmp_1)
             
-            # --------- Backup sleeping process in case the device is still on when passing the maximum downlink time  ---------------
+            # --------- S2 - Backup sleeping process in case the device is still on when passing the maximum downlink time  ---------------
             if dt[3] == int(globalVars.endDownlink.split(":")[0]) and dt[4] == int(globalVars.endDownlink.split(":")[1]) and dt[5] > int(globalVars.endDownlink.split(":")[2]) and dt[5] < (int(globalVars.endDownlink.split(":")[2])+60):
                 rnm_tmp = tools.calculateSleepTime(globalVars.dailyStandBy,globalVars.startDownlink)
                 tools.debug("Scheduler - DutyCycle - Going to sleep until the day begins: " + str(rnm_tmp), "v")
@@ -76,12 +76,14 @@ class Scheduler():
                 tools.debug("Scheduler - RTC is not syncronized, so not possible to check the DutyCycle properly", "v")    
                 return
             tools.debug("Scheduler - Overnight start: " + globalVars.startDownlink + "- Overnight end: " + globalVars.endDownlink, "v")
+            #------ Sleep cycle 3 (S3) ---------
             if frameid == framescounter:
                 current_wiloc_dt = str(dt[3]) + ":" + str(dt[4]) + ":" + str(dt[5])
                 slp_tm = tools.calculateSleepTime(current_wiloc_dt,globalVars.dailyStart)
                 tools.debug("Scheduler - Going to sleep until day begins: " + str(slp_tm), "v")
                 tools.deepSleepWiloc(slp_tm)
             else:
+                #------ Sleep cycle 2 (S2) ---------
                 rnd_secs = tools.random()
                 tools.debug("Scheduler - Going to sleep until next downlink: " + str(rnd_secs), "v")
                 tools.deepSleepWiloc(rnd_secs)
