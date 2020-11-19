@@ -26,6 +26,6 @@ print("Test SD: " + str(aaa))
 f.close()
 pycom.pybytes_on_boot(False)
 pycom.wdt_on_boot(True) 
-pycom.wdt_on_boot_timeout(360000)
+pycom.wdt_on_boot_timeout(720000)
 pycom.heartbeat(False)
 

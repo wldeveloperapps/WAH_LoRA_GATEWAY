@@ -111,7 +111,7 @@ try:
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
                     lorawan.sendLoRaWANMessage()
             else:
-                sched.checkNextReset()
+                # sched.checkNextReset()
                 sched.checkDutyCycle()
                 tools.sleepProcess()
             

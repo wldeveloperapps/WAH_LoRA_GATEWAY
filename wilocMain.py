@@ -186,8 +186,8 @@ def createPackageToSend(devs, frames):
                     if len(fr.raw) > 36:
                         last_frame = str(fr.raw)[12:36]
             if len(last_frame) > 22:
-                last_lat = last_frame[12:20]
-                last_lon = last_frame[4:12]
+                last_lat = last_frame[10:18]
+                last_lon = last_frame[2:10]
                 dev_gps_stats = int(last_frame[20:22],16)
                 if int(last_lon[0]+last_lon[1],16) == 0 and int(last_lon[2]+last_lon[3],16) == 0 and int(last_lon[4]+last_lon[5],16) == 0 and int(last_lon[6]+last_lon[7],16) == 0:
                     gps_flag = False

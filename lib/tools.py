@@ -36,7 +36,7 @@ try:
 
     gc.enable()
     s = StringIO()
-    wdt = machine.WDT(timeout=360000)
+    wdt = machine.WDT(timeout=720000)
 except BaseException as e:
     checkError("Error initializing tools", e)
     if globalVars.deviceID == 2:
@@ -343,6 +343,34 @@ def loadConfigParameters():
         except BaseException as e:
             pycom.nvs_set('lowbattalarm', globalVars.LOW_BATTERY_VOLTAGE)
             checkError("LoRaWAN LOW_BATTERY_VOLTAGE error", e)
+            
+        try:
+            globalVars.startDownlink = pycom.nvs_get('startdowndate')
+            debug("Step 0.5 - startDownlink: " + str(globalVars.startDownlink),'v')
+        except BaseException as e:
+            pycom.nvs_set('startdowndate', globalVars.startDownlink)
+            checkError("LoRaWAN startDownlink error", e)
+            
+        try:
+            globalVars.endDownlink = pycom.nvs_get('stopdowndate')
+            debug("Step 0.5 - endDownlink: " + str(globalVars.endDownlink),'v')
+        except BaseException as e:
+            pycom.nvs_set('stopdowndate', globalVars.endDownlink)
+            checkError("LoRaWAN endDownlink error", e)
+            
+        try:
+            globalVars.dailyStart = pycom.nvs_get('dailystartdate')
+            debug("Step 0.5 - dailyStart: " + str(globalVars.dailyStart),'v')
+        except BaseException as e:
+            pycom.nvs_set('dailystartdate', globalVars.dailyStart)
+            checkError("LoRaWAN dailyStart error", e)
+            
+        try:
+            globalVars.dailyStandBy = pycom.nvs_get('dailystopdate')
+            debug("Step 0.5 - dailyStandBy: " + str(globalVars.dailyStandBy),'v')
+        except BaseException as e:
+            pycom.nvs_set('dailystopdate', globalVars.dailyStandBy)
+            checkError("LoRaWAN dailyStandBy error", e)
     except BaseException as e1:
         checkError("Step 18 - Error loading config parameters",e1) 
 

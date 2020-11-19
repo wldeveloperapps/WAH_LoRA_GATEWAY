@@ -5,13 +5,13 @@ deviceID = 2 # PyTrack
 # deviceID = 1 # PySense
 
 # ------ Configuration parameters --------
-MAX_REFRESH_TIME = 30 # Code 20
+MAX_REFRESH_TIME = 60 # Code 20
 BLE_SCAN_PERIOD = 6 # Code 21
 STANDBY_PERIOD = 1 # Code 22
 RSSI_NEAR_THRESHOLD = 'c4' # Code 23
-STATISTICS_REPORT_INTERVAL = 86400 # Code 24
+STATISTICS_REPORT_INTERVAL = 600 # Code 24
 BUZZER_DURATION = 1 # Code 25
-SENT_PERIOD = 60 # Code 26
+SENT_PERIOD = 120 # Code 26
 BUZZER_COUNTER_ALARM = 3 # Code 27
 ALARM_LIST_TYPE = 2 # Code 28 ------- 0-None / 1-Whitelist / 2-Blacklist 
 LOW_BATTERY_VOLTAGE = 19 # Code 33
@@ -31,7 +31,7 @@ dailyreset="00:00:00"
 startDownlink="01:00:00"
 endDownlink="03:00:00"
 dailyStart="06:00:00"
-dailyStandBy="18:20:00"
+dailyStandBy="18:00:00"
 refDay="23:59:59"
 
 dayOff = [6]
