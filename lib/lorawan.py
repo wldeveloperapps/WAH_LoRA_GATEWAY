@@ -384,16 +384,16 @@ def sendLoRaWANMessage():
 
 def sendAckMessageThread(lora_sck):
     try:
-        tools.debug("Starting Threading LoRaWAN messages ", 'v')
+        tools.debug("Step 7 - Starting Threading LoRaWAN messages ", 'v')
         devs_error = []
         stats_error = []
         acks_error = []
         if len(globalVars.lora_sent_devices) > 0: 
             for dev in globalVars.lora_sent_devices:
                 try:
-                    utime.sleep(10)
+                    utime.sleep(5)
                     lora_sck.send(bytes(dev.raw))
-                    tools.debug("Devices Threading, LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw), 'vv')
+                    tools.debug("Step 7 - Devices Threading, LoRaWAN message succesfully, Device: " + str(dev.addr) + " - Raw: " + str(dev.raw), 'vv')
                 except BaseException as e1:
                     checkError("Error sending message of device: " + str(dev.addr), e1)
                     devs_error.append(dev)
@@ -402,9 +402,9 @@ def sendAckMessageThread(lora_sck):
         if len(globalVars.lora_sent_stats) > 0:    
             for dev_stat in globalVars.lora_sent_stats:
                 try:
-                    utime.sleep(10)
+                    utime.sleep(5)
                     lora_sck.send(bytes(dev_stat.raw))
-                    tools.debug("Statistics Threading, LoRaWAN message succesfully, Device: " + str(dev_stat.addr) + " - Raw: " + str(dev_stat.raw), 'vv')
+                    tools.debug("Step 7 - Statistics Threading, LoRaWAN message succesfully, Device: " + str(dev_stat.addr) + " - Raw: " + str(dev_stat.raw), 'vv')
                 except BaseException as e2:
                     checkError("Error sending message of statistics: " + str(dev_stat.addr), e2)
                     stats_error.append(dev_stat)
@@ -413,9 +413,9 @@ def sendAckMessageThread(lora_sck):
         if len(globalVars.lora_sent_acks) > 0:  
             for dev_acks in globalVars.lora_sent_acks:
                 try:
-                    utime.sleep(10)
+                    utime.sleep(5)
                     lora_sck.send(bytes(dev_acks.raw))
-                    tools.debug("ACKs Threading, LoRaWAN message succesfully, Device: " + str(dev_acks.addr) + " - Raw: " + str(dev_acks.raw), 'vv')
+                    tools.debug("Step 7 - ACKs Threading, LoRaWAN message succesfully, Device: " + str(dev_acks.addr) + " - Raw: " + str(dev_acks.raw), 'vv')
                 except BaseException as e3:
                     checkError("Error sending message of ACKs: " + str(dev_acks.addr), e3)
                     acks_error.append(dev_acks)
@@ -451,7 +451,7 @@ def createReceivingReport():
         strToSend.append(whiteLen[3])
         strToSend.append(blackLen[2])
         strToSend.append(blackLen[3])
-        tools.debug("Creating ack report: " + str(strToSend),'v')
+        tools.debug("Step 8 - Creating ack report: " + str(strToSend),'v')
         globalVars.lora_sent_acks.append(Device(addr="ackresp",raw=strToSend))
         # tools.manage_devices_send(devicesToSend)
     except BaseException as e1:

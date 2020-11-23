@@ -27,7 +27,7 @@ def rssiFilterDevices(RSSI_NEAR_THRESHOLD, macs, frames):
         
         rssi_filter_devices = []
         thrs = int(RSSI_NEAR_THRESHOLD,16) - 256
-        tools.debug("Step 2 - Filtering RSSI, Threshold: " + str(thrs) + " - Devices: " + str(len(macs)) + " - Records: " + str(len(frames)), 'v')
+        tools.debug("Step 2 - Filtering RSSI, Threshold: " + str(thrs) + " - Devices: " + str(len(macs)) + " - Records: " + str(len(frames)), 'vv')
         for scanDev in macs:
             ret = calculateRssiAvg(scanDev, frames)
             #if int(ret[0]) >= int(thrs):
@@ -135,7 +135,7 @@ def checkTimeToAddDevices(devs, MAX_REFRESH_TIME):
                 if (dmDev.timestamp + int(MAX_REFRESH_TIME)) < ts:
                     ret_devices.append(dev)
                 else:
-                    tools.debug("Step 3 - Waiting for the device " + str(dmDev.addr) + " to send again - Remaining time: " + str(((dmDev.timestamp + int(MAX_REFRESH_TIME)) - ts)),'v')
+                    tools.debug("Step 3 - Waiting for the device " + str(dmDev.addr) + " to send again - Remaining time: " + str(((dmDev.timestamp + int(MAX_REFRESH_TIME)) - ts)),'vv')
             else:
                 ret_devices.append(dev)
         
@@ -215,7 +215,7 @@ def createPackageToSend(devs, frames):
                 strToSend.append(int(last_lat[6]+last_lat[7],16)) # End-Device Latitude 
             globalVars.device_sent = LoRaWANSentListUpdateDevice(dd)
             devicesToSend.append(Device(addr=dd.addr,raw=strToSend))
-            tools.debug("Creating package to send of device: " + str(dd.addr) + " - Batt: " + str(bat) + " - GPS From: " + str('Device' if gps_flag == True else 'Campanolo'),'v')
+            tools.debug("Step 5 - Creating package to send of device: " + str(dd.addr) + " - Batt: " + str(bat) + " - GPS From: " + str('Device' if gps_flag == True else 'Campanolo'),'v')
         return devicesToSend
     except BaseException as e1:
         checkError("Step 5 - Error creating package to send", e1)
@@ -238,7 +238,7 @@ def checkTimeForStatistics(INTERVAL):
             rtcmgt.updateRTC()
             return True
         else:
-            tools.debug("Step 6 - No statistics reports yet, WhiteList: " + str(len(globalVars.devices_whitelist)) + " - BlackList: " + str(len(globalVars.devices_blacklist)) +" - remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
+            tools.debug("STATS - No statistics reports yet, WhiteList: " + str(len(globalVars.devices_whitelist)) + " - BlackList: " + str(len(globalVars.devices_blacklist)) +" - remaining: " + str(((int(last_report) + int(INTERVAL)) - ts)),'v')
             return False
     except BaseException as e:
         checkError("Error checking time for statistics", e)
@@ -258,7 +258,7 @@ def createStatisticsReport():
             lat =  struct.pack(">I", acc_tmp)
             lon =  struct.pack(">I", acc_hum)
         elif globalVars.deviceID == 2:
-            tools.debug("Waiting for GPS ",'vv')
+            tools.debug("GPS - Starting GPS acquisition",'v')
             globalVars.latitude, globalVars.longitude = tools.getGPS()
             if globalVars.latitude is None or globalVars.longitude is None:
                 loadLastValidPosition()
@@ -320,7 +320,7 @@ def checkLowBattery():
     try:
         
         batt = tools.getBatteryPercentage()
-        tools.debug("Checking battery voltage: " + str(batt) + "%", "v")
+        tools.debug("Step 6 - Checking battery voltage: " + str(batt) + "%", "v")
         if batt < globalVars.LOW_BATTERY_VOLTAGE:
             globalVars.indicatorFrequencyOn = 2
             globalVars.indicatorFrequencyOff = 30

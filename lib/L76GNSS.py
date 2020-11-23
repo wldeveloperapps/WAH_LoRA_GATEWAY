@@ -22,7 +22,7 @@ import time
 import gc
 import binascii
 import globalVars
-
+import tools
 # import math
 
 # TODO: annotate sattelites in view
@@ -316,7 +316,7 @@ class L76GNSS:
                         hdop = float(nmea_message['HDOP'])
                         pdop = float(nmea_message['PDOP'])
                     # dd = haversine(float(nmea_message['Latitude']),float(nmea_message['Longitude']), 40.34189, -3.820436)
-                    print("Fix position, timeout: " + str(tc.read()) + " - Position: " + str(nmea_message['Latitude']) +" " + str(str(nmea_message['Longitude'])) + " - Distance: " + str(dd) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv))
+                    tools.debug("Fix position, timeout: " + str(tc.read()) + " - Position: " + str(nmea_message['Latitude']) +" " + str(str(nmea_message['Longitude'])) + " - Distance: " + str(dd) + " - HDOP: " + str(hdop) + " - PDOP: " + str(pdop) +  " - Satellites: " + str(nsv),"vv")
                     if hdop <= globalVars.min_hdop and hdop > 0 and pdop <= globalVars.min_pdop and pdop > 0 and nsv >= globalVars.min_satellites:
                         tc.stop()
                         self.fix = True

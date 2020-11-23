@@ -43,7 +43,7 @@ def bluetooth_scanner():
     try:
         while True:
             try:
-                tools.debug('Step 1 - Starting BLE scanner, RSSI: ' + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256) + " - RTC: " + str(int(utime.time())) + " - REFRESH: " + str(globalVars.MAX_REFRESH_TIME) + " - SCAN: " + str(int(globalVars.BLE_SCAN_PERIOD)) + " - SLEEP: " + str(int(globalVars.STANDBY_PERIOD)) + " - DEBUG: " + str(globalVars.debug_cc) ,'v')
+                tools.debug('BLE - Starting BLE scanner, RSSI: ' + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256) + " - RTC: " + str(int(utime.time())) + " - REFRESH: " + str(globalVars.MAX_REFRESH_TIME) + " - SCAN: " + str(int(globalVars.BLE_SCAN_PERIOD)) + " - SLEEP: " + str(int(globalVars.STANDBY_PERIOD)) + " - DEBUG: " + str(globalVars.debug_cc) ,'v')
                 ble_thread = True
                 bluetooth = Bluetooth()
                 bluetooth.start_scan(int(globalVars.BLE_SCAN_PERIOD))
@@ -64,7 +64,7 @@ def bluetooth_scanner():
                                 wilocMain.checkListType(str(mac_proc), globalVars.ALARM_LIST_TYPE)
                             globalVars.scanned_frames.append(Device(addr=mac_proc,rssi=adv.rssi, raw=data_raw))
 
-                tools.debug('Step 1 - Stopping BLE scanner ' + str(int(utime.time())),'v')
+                tools.debug('BLE - Stopping BLE scanner ' + str(int(utime.time())),'v')
                 tools.sleepWiloc(int(globalVars.STANDBY_PERIOD))
             except BaseException as ee1:
                 checkError("Error scanning Bluetooth",ee1)
