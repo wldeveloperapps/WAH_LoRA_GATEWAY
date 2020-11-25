@@ -57,7 +57,7 @@ class Scheduler():
             
             # --------- S2 - Backup sleeping process in case the device is still on when passing the maximum downlink time  ---------------
             if dt[3] == int(globalVars.endDownlink.split(":")[0]) and dt[4] == int(globalVars.endDownlink.split(":")[1]) and dt[5] > int(globalVars.endDownlink.split(":")[2]) and dt[5] < (int(globalVars.endDownlink.split(":")[2])+60):
-                rnm_tmp = tools.calculateSleepTime(globalVars.dailyStandBy,globalVars.startDownlink)
+                rnm_tmp = tools.calculateSleepTime(globalVars.endDownlink,globalVars.dailyStart)
                 tools.debug("Scheduler - DutyCycle - Going to sleep until the day begins: " + str(rnm_tmp), "v")
                 tools.deepSleepWiloc(rnm_tmp)
             # ---------- Check if today is the day OFF --------------
