@@ -258,7 +258,7 @@ def checkFrameConfiguration(frame, port):
             elif str(payload[0:2]) == 'f1': # Foce Reset
                 machine.reset()
             elif str(payload[0:2]) == 'f2': # Foce Sleep
-                tools.deepSleepWiloc(str(payload[2:8]))
+                tools.deepSleepWiloc(int(payload[2:8],16))
             elif str(payload[0:2]) == "ff":
                 tools.systemCommands(str(payload[2:]))
             else:
