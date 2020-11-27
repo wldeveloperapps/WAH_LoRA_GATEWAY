@@ -435,3 +435,6 @@ def calculateSleepTime(start, end):
         return total_diff
     except BaseException as e:
         checkError("Error on scheduler CalculatingSleepTime", e)
+
+def bitfield(n):
+    return [int(digit) for digit in bin(n)[2:]]

@@ -174,7 +174,7 @@ def checkFrameConfiguration(frame, port):
                 print("##### Message received of new device in BlackList, lenght: " + str(len(str(payload))/2))
                 blacklisttools.BlackListNewDevice(str(payload[2:]))
                 BeepBuzzer(2)
-            elif str(payload[0:2]) == 'ad': # Add new devices to the BlackList
+            elif str(payload[0:2]) == 'ad': # Add new devices to the White and Black List
                 print("##### Message received for generic device adding, lenght: " + str(len(str(payload))/2))
                 if len(payload[2:]) >= 4:
                     list_type = int(payload[2:4],16)
@@ -353,6 +353,15 @@ def UpdateConfigurationParameters(raw_payload):
                 globalVars.endDownlink = str(tmp_enddwnhour) + ":" + str(tmp_enddwnmin) + ":00"
                 pycom.nvs_set('stopdowndate', globalVars.endDownlink)
                 tools.debug("Step CC - Setting scheduler done, Enddownlinks: " + str(globalVars.endDownlink), "v")
+            if payload[0:2] == '35': # Configure the days off
+                tools.debug("Step CC - Setting Scheduler days off, payload: " + str(payload), "v")
+                days_tmp = []
+                var_tmp = tools.bitfield(int(payload[4:6],16))
+                for i in range(7):
+                    if str(var_tmp[i]) == '1':
+                        days_tmp.append(6-i)
+                globalVars.dayOff = days_tmp
+                tools.debug("Step CC - Setting scheduler do: " + str(days_tmp)+" - "+str(var_tmp), "v")
 
     except BaseException as e:
         checkError("Step CC -  Error setting configuiration parameters", e)
