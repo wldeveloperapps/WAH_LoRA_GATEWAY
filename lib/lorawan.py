@@ -320,6 +320,8 @@ def UpdateConfigurationParameters(raw_payload):
             if payload[0:2] == '30':
                 tools.debug("Step CC - Setting Scheduler timers StartTime , payload: " + str(payload), "v")
                 tmp_start = str(int(payload[2:6],16))
+                if len(tmp_start) == 3:
+                    tmp_start = "0" + tmp_start
                 tmp_starthour = tmp_start[:2]
                 tmp_startmin = tmp_start[2:]
                 globalVars.dailyStart = str(tmp_starthour) + ":" + str(tmp_startmin) + ":00"
@@ -328,6 +330,8 @@ def UpdateConfigurationParameters(raw_payload):
             if payload[0:2] == '31':
                 tools.debug("Step CC - Setting Scheduler timers StopTime , payload: " + str(payload), "v")
                 tmp_stop = str(int(payload[2:6],16))
+                if len(tmp_stop) == 3:
+                    tmp_stop = "0" + tmp_stop
                 tmp_stophour = tmp_stop[:2]
                 tmp_stopmin = tmp_stop[2:]
                 globalVars.dailyStandBy = str(tmp_stophour) + ":" + str(tmp_stopmin) + ":00"
@@ -336,6 +340,8 @@ def UpdateConfigurationParameters(raw_payload):
             if payload[0:2] == '32':
                 tools.debug("Step CC - Setting Scheduler timers StartDownlinks, payload: " + str(payload), "v")
                 tmp_startdwn = str(int(payload[2:6],16))
+                if len(tmp_startdwn) == 3:
+                    tmp_startdwn = "0" + tmp_startdwn
                 tmp_startdwnhour = tmp_startdwn[:2]
                 tmp_startdwnmin = tmp_startdwn[2:]
                 globalVars.startDownlink = str(tmp_startdwnhour) + ":" + str(tmp_startdwnmin) + ":00"
@@ -348,6 +354,8 @@ def UpdateConfigurationParameters(raw_payload):
             if payload[0:2] == '34':
                 tools.debug("Step CC - Setting Scheduler timers EndDownlinks, payload: " + str(payload), "v")
                 tmp_enddwn = str(int(payload[2:6],16))
+                if len(tmp_enddwn) == 3:
+                    tmp_enddwn = "0" + tmp_enddwn
                 tmp_enddwnhour = tmp_enddwn[:2]
                 tmp_enddwnmin = tmp_enddwn[2:]
                 globalVars.endDownlink = str(tmp_enddwnhour) + ":" + str(tmp_enddwnmin) + ":00"
