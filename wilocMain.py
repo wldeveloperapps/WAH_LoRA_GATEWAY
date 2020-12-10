@@ -307,6 +307,10 @@ def createStatisticsReport():
         strToSendStatistics.append(dt[3])
         strToSendStatistics.append(whiteLen[2])
         strToSendStatistics.append(whiteLen[3])
+        strToSendStatistics.append(struct.pack(">I", globalVars.scheduler_version))
+        strToSendStatistics.append(struct.pack(">I", globalVars.comms_version))
+        strToSendStatistics.append(struct.pack(">I", globalVars.main_version))
+        strToSendStatistics.append(struct.pack(">I", globalVars.loc_version))
         tools.debug("Step 7 - Creating statistics report: " + str(strToSendStatistics) + " Battery: " + str(st_bat[3]),'v')
         globalVars.flag_gps_running = False
         globalVars.lora_sent_stats.append(Device(addr="stats",raw=strToSendStatistics))

@@ -1,4 +1,9 @@
 
+#------ Firmware Version -----------
+scheduler_version = 1
+comms_version = 1
+main_version = 1
+loc_verison = 1
 
 # ------ Device Type ------
 deviceID = 2 # PyTrack
