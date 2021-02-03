@@ -6,7 +6,7 @@ from lib.beacon import Device
 from network import LoRa
 from scheduler import Scheduler
 import whitelistTools
-import blacklisttools
+import blacklistTools
 import globalVars
 import ubinascii
 import binascii
@@ -172,7 +172,7 @@ def checkFrameConfiguration(frame, port):
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'a1': # Add new devices to the BlackList
                 print("##### Message received of new device in BlackList, lenght: " + str(len(str(payload))/2))
-                blacklisttools.BlackListNewDevice(str(payload[2:]))
+                blacklistTools.BlackListNewDevice(str(payload[2:]))
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'ad': # Add new devices to the White and Black List
                 print("##### Message received for generic device adding, lenght: " + str(len(str(payload))/2))
@@ -189,12 +189,12 @@ def checkFrameConfiguration(frame, port):
                         if list_type == 1:
                             whitelistTools.WhiteListDeleteDevices()
                         elif list_type == 2:
-                            blacklisttools.BlackListDeleteDevices()
+                            blacklistTools.BlackListDeleteDevices()
                     # ----------Append devices to lists-------------
                     if list_type == 1:
                             whitelistTools.WhiteListNewDevice(str(payload[10:]))
                     elif list_type == 2:
-                            blacklisttools.BlackListNewDevice(str(payload[10:]))
+                            blacklistTools.BlackListNewDevice(str(payload[10:]))
                     # ----------Prepare uplink messages-------------
                     createReceivingReport()
                     # ----------Check Scheduler-------------
@@ -206,13 +206,13 @@ def checkFrameConfiguration(frame, port):
                 whitelistTools.WhiteListDeleteSpecificDevice(str(payload[2:]))
                 BeepBuzzer(2)
             elif str(payload[0:2])== 'd1': # Delete device from the BlackList
-                blacklisttools.BlackListDeleteSpecificDevice(str(payload[2:]))
+                blacklistTools.BlackListDeleteSpecificDevice(str(payload[2:]))
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'd2': # Delete entire WhiteList file
                 whitelistTools.WhiteListDeleteDevices()
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'd3': # Delete entire BlackList file
-                blacklisttools.BlackListDeleteDevices()
+                blacklistTools.BlackListDeleteDevices()
                 BeepBuzzer(2)
             elif str(payload[0:2]) == 'd4': # Delete entire buzzer file
                 BuzzerListCleanDevices()

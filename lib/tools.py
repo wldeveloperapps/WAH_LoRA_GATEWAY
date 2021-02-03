@@ -2,7 +2,6 @@ from machine import Pin, SD
 from lib.beacon import DeviceBuzzer, DeviceReport
 from errorissuer import checkError
 from lib.rtcmgt import forceRTC
-# from math import radians, sin, cos, acos
 import math
 import time
 import os
@@ -26,14 +25,14 @@ try:
         from LIS2HH12 import LIS2HH12
         py = Pytrack()
         acc = LIS2HH12()
-    else:
+    elif globalVars.deviceID == 1:
         from pysense import Pysense
         from SI7006A20 import SI7006A20
         from LIS2HH12 import LIS2HH12
         py = Pysense()
         acc = LIS2HH12(py)
         si = SI7006A20(py)
-
+        
     gc.enable()
     s = StringIO()
     wdt = machine.WDT(timeout=720000)
@@ -45,7 +44,7 @@ except BaseException as e:
         from LIS2HH12 import LIS2HH12
         py = Pytrack()
         acc = LIS2HH12()
-    else:
+    elif globalVars.deviceID == 1:
         from pysense import Pysense
         from SI7006A20 import SI7006A20
         from LIS2HH12 import LIS2HH12
@@ -58,12 +57,17 @@ except BaseException as e:
     wdt = machine.WDT(timeout=360000)
 
 def isInList(device, dmList):
-    for dev in dmList:
-        if device.addr in dev.addr:
-            return dev
+    try:
+        for dev in dmList:
+            #debug("isinlist, device: " + str(device.addr) + " - compare: " + str(dev) + " - " + str(dev.addr), "vvv")
+            if device.addr in dev.addr:
+                return dev
 
-    return None
-
+        return None
+    except BaseException as e:
+        debug("Device: " + str(device.addr) + " - DmList: " + str(len(dmList)),"v")
+        checkError("Error checking isinList", e)
+        
 def StopSDCard():
     sd.deinit()
 
@@ -86,6 +90,9 @@ def getBatteryLevel():
 
 def getBatteryPercentage():
     try:
+        if(globalVars.deviceID == 0):
+            return 0
+
         acc_bat = 0
         counter = 0
         for a in range(10):
@@ -226,6 +233,9 @@ def systemCommands(data):
 
 def getAccelerometer():
     try:
+        if(globalVars.deviceID == 0):
+            return [0,0,0]
+
         return acc.acceleration()
     except BaseException as e:
         checkError("Error gettion accelerometer", e)
@@ -258,6 +268,18 @@ def getGPS():
     except BaseException as e:
         checkError("Error getting GPS" , e)
         return None,None
+
+def getTemperature():
+    try:
+        return si.temperature()
+    except BaseException as e:
+        checkError("Error gettion temperature", e)
+
+def getHumidity():
+    try:
+        return si.humidity()
+    except BaseException as e:
+        checkError("Error gettion humidity", e)
 
 def feedWatchdog():
     global wdt
@@ -381,12 +403,6 @@ def resetDevice(dev):
     except BaseException as e:
         checkError("Error going to light sleep",e)
 
-def template(dev):
-    try:
-        debug("", "")
-    except BaseException as e:
-        checkError("Error going to light sleep",e)
-
 def manage_devices_send(dev_list):
     try:
         for dd1 in dev_list:
@@ -438,3 +454,10 @@ def calculateSleepTime(start, end):
 
 def bitfield(n):
     return [int(digit) for digit in bin(n)[2:]]
+
+
+def template(dev):
+    try:
+        debug("", "")
+    except BaseException as e:
+        checkError("Error going to light sleep",e)

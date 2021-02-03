@@ -15,7 +15,7 @@ def BlackListGetDevices():
         devices_blacklist = []
         f = open('/sd/blacklist.csv', 'r')
         strFile = f.read()
-        print("Step 0 - Getting Blacklist, content: " + strFile)
+        print("Step 0 - Getting Blacklist,content: " + strFile)
         for dd in strFile.replace('"','').split('\n'):
             if len(dd.split(',')) >= 2:
                 devices_blacklist.append(dd.split(',')[0])

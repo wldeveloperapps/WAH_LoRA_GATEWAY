@@ -12,7 +12,7 @@ import tools
 import struct
 import pycom
 import globalVars
-import lorawan
+#import lorawan
 import _thread
 import rtcmgt
 
@@ -251,12 +251,13 @@ def createStatisticsReport():
         if globalVars.deviceID == 1:
             temperature = 0
             altitude = 0
-            temperature = si.temperature()
-            humidity = si.humidity()
+            temperature = tools.getTemperature()
+            humidity = tools.getHumidity()
             acc_tmp = int(round(temperature))
             acc_hum = int(round(humidity))
             lat =  struct.pack(">I", acc_tmp)
             lon =  struct.pack(">I", acc_hum)
+            tools.debug("Statistics - Temperature: " + str(acc_tmp) + " - Humidty: " + str(acc_hum),"v")
         elif globalVars.deviceID == 2:
             tools.debug("GPS - Starting GPS acquisition",'v')
             globalVars.latitude, globalVars.longitude = tools.getGPS()
@@ -346,17 +347,22 @@ def loadLastValidPosition():
         dummy_lat = pycom.nvs_get('last_lat')
         globalVars.latitude = tuple(map(int, dummy_lat.split(','))) 
         tools.debug("Getting latitude from FLASH: " + str(globalVars.latitude),'v')
-    except Exception:
-        checkError("Error getting Latitude") 
-        globalVars.latitude = struct.pack(">I", 0)
+    except BaseException as e:
+        checkError("Error getting Latitude", e) 
+        #globalVars.latitude = struct.pack(">I", 0)
+        lat_st = str(globalVars.latitude[0]) + "," + str(globalVars.latitude[1]) + "," + str(globalVars.latitude[2]) + "," + str(globalVars.latitude[3])
+        pycom.nvs_set('last_lat', lat_st)
+               
     
     try:
         dummy_lon = pycom.nvs_get('last_lon')
         globalVars.longitude = tuple(map(int, dummy_lon.split(','))) 
         tools.debug("Getting longitude from FLASH: " + str(globalVars.longitude),'v')
-    except Exception:
-        checkError("Error getting Longitude") 
-        globalVars.longitude = struct.pack(">I", 0)
+    except BaseException as e:
+        checkError("Error getting Longitude", e)
+        lon_st = str(globalVars.longitude[0]) + "," + str(globalVars.longitude[1]) + "," + str(globalVars.longitude[2]) + "," + str(globalVars.longitude[3]) 
+        pycom.nvs_set('last_lon', lon_st)
+        #globalVars.longitude = struct.pack(">I", 0)
 
 def checkTimeToSend(interval):
     try:

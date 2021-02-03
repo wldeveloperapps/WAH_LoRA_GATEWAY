@@ -11,6 +11,7 @@ import wilocMain
 import tools
 import globalVars
 import lorawan
+import wlan
 import _thread
 from machine import UART
 
@@ -34,7 +35,6 @@ def uart_task():
     except BaseException as e:
         checkError("Error thread UART Task",e)
     finally:
-        ble_thread = False
         checkWarning("Finally thread UART Task")
         _thread.start_new_thread(uart_task,())
 
@@ -46,6 +46,7 @@ def bluetooth_scanner():
                 tools.debug('BLE - Starting BLE scanner, RSSI: ' + str(int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256) + " - RTC: " + str(int(utime.time())) + " - REFRESH: " + str(globalVars.MAX_REFRESH_TIME) + " - SCAN: " + str(int(globalVars.BLE_SCAN_PERIOD)) + " - SLEEP: " + str(int(globalVars.STANDBY_PERIOD)) + " - DEBUG: " + str(globalVars.debug_cc) ,'v')
                 ble_thread = True
                 bluetooth = Bluetooth()
+                bluetooth.tx_power(Bluetooth.TX_PWR_SCAN, Bluetooth.TX_PWR_P9)
                 bluetooth.start_scan(int(globalVars.BLE_SCAN_PERIOD))
                 while bluetooth.isscanning():
                     adv = bluetooth.get_adv()
@@ -59,6 +60,16 @@ def bluetooth_scanner():
                             tools.debug('Name: '+ str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)) +' MAC: '+ str(mac_proc)+ ' RSSI: ' + str(adv.rssi) + ' DT: '+ str(int(utime.time())) +' RAW: ' + data_raw,'vvv')
                             if mac_proc not in globalVars.mac_scanned:
                                 tools.debug('Step 1 - New device detected: ' + str(mac_proc),'vv')
+                                globalVars.mac_scanned.append(mac_proc)
+                            if adv.rssi >= (int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256):  
+                                wilocMain.checkListType(str(mac_proc), globalVars.ALARM_LIST_TYPE)
+                            globalVars.scanned_frames.append(Device(addr=mac_proc,rssi=adv.rssi, raw=data_raw))
+                        elif 'WIL_C01' in str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)):
+                            data_raw = str(ubinascii.hexlify(adv.data).decode('utf-8'))
+                            mac_proc = str(ubinascii.hexlify(adv.mac).decode('utf-8')) # MAC BLE
+                            #tools.debug('BLE Name: '+ str(bluetooth.resolve_adv_data(adv.data, Bluetooth.ADV_NAME_CMPL)) +' - BLE MAC: '+ str(mac_proc)+ ' - RSSI: ' + str(adv.rssi) + ' - DT: '+ str(int(utime.time())) +' - RAW: ' + data_raw,'vvv')
+                            if mac_proc not in globalVars.mac_scanned:
+                                tools.debug('Step 1 - BLE New device detected: ' + str(mac_proc),'vv')
                                 globalVars.mac_scanned.append(mac_proc)
                             if adv.rssi >= (int(globalVars.RSSI_NEAR_THRESHOLD,16) - 256):  
                                 wilocMain.checkListType(str(mac_proc), globalVars.ALARM_LIST_TYPE)
@@ -88,8 +99,12 @@ try:
     tools.loadConfigParameters()
     wilocMain.loadSDCardData()
     utime.sleep(2)
-    lorawan.join_lora()
-    
+    if globalVars.backhaul == 1:
+        lorawan.join_lora()
+    elif globalVars.backhaul == 2:
+        wlan.wlan_connect()
+        wlan.mqtt_connect()
+
     while True:
         try:
             if ble_thread == False:
@@ -109,7 +124,10 @@ try:
                 _thread.start_new_thread(wilocMain.createStatisticsReport,())
             
             if wilocMain.checkTimeToSend(globalVars.SENT_PERIOD) == True:
+                if globalVars.backhaul == 1:
                     lorawan.sendLoRaWANMessage()
+                elif globalVars.backhaul == 2:
+                    wlan.sendPostMessages()
             else:
                 # sched.checkNextReset()
                 sched.checkDutyCycle()

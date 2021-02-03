@@ -6,8 +6,18 @@ main_version = 1
 loc_version = 1
 
 # ------ Device Type ------
-deviceID = 2 # PyTrack
-# deviceID = 1 # PySense
+# deviceID = 2 # PyTrack
+#deviceID = 1 # PySense
+deviceID = 0 # Expansion board
+
+#-------- Backhaul --------
+backhaul = 2 # 1 LoRaWAN / 2 WIFI
+wifi_ssid = "WILOC_AIRE"
+wifi_psw = "WiL.10.TeCH"
+mqtt_url = "smart-fisherman.cloudmqtt.com"
+mqtt_user = "ffetgyj"
+mqtt_psw = "mqtt@tr#1234"
+mqtt_topic = "/AssetsMgmtTest"
 
 # ------ Configuration parameters --------
 MAX_REFRESH_TIME = 60 # Code 20
